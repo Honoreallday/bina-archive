@@ -1,6 +1,8 @@
-# Node
+# Node / Dependencies
 node_modules/
 package-lock.json
+/.pnp
+.pnp.js
 
 # Environment
 .env
@@ -11,10 +13,13 @@ package-lock.json
 logs
 *.log
 
+# Testing
+/coverage
+
 # Mac
 .DS_Store
 
 # Build output
 dist/
 build/
-.next/
+.next/-
