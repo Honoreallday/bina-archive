@@ -10,7 +10,8 @@
     "test:coverage": "jest --coverage",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "migrate": "node src/db/migrate.js"
+    "migrate": "node src/db/migrate.js",
+    "db:verify": "node scripts/verify-db.js"
   },
   "keywords": [],
   "author": "",

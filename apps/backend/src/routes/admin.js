@@ -3,6 +3,7 @@ const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { s3 } = require('../lib/s3');
 const { pool } = require('../db/client');
+const { getAllFilms, setPublished } = require('../db/films');
 
 const router = Router();
 
@@ -56,6 +57,32 @@ router.post('/films', async (req, res) => {
   );
 
   res.status(201).json(rows[0]);
+});
+
+// GET /api/admin/films
+// Returns all films regardless of published status — admin view only
+router.get('/films', async (req, res) => {
+  const films = await getAllFilms();
+  res.json(films);
+});
+
+// PATCH /api/admin/films/:id
+// Body: { published: boolean }
+// Publishes or unpublishes a film
+router.patch('/films/:id', async (req, res) => {
+  const { published } = req.body;
+
+  if (typeof published !== 'boolean') {
+    return res.status(400).json({ error: 'published must be a boolean' });
+  }
+
+  const film = await setPublished(req.params.id, published);
+
+  if (!film) {
+    return res.status(404).json({ error: 'Film not found' });
+  }
+
+  res.json(film);
 });
 
 module.exports = router;
