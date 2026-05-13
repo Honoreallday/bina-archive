@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { getPublishedFilms, getFilmById } = require('../db/films');
+const { getPublishedFilms, getFilmBySlug } = require('../db/films');
 const { signUrl } = require('../lib/cloudfront');
 
 const router = Router();
@@ -11,10 +11,10 @@ router.get('/', async (req, res) => {
   res.json(films);
 });
 
-// GET /api/films/:id
+// GET /api/films/:slug
 // Returns a single film's metadata + a fresh signed CloudFront HLS URL
-router.get('/:id', async (req, res) => {
-  const film = await getFilmById(req.params.id);
+router.get('/:slug', async (req, res) => {
+  const film = await getFilmBySlug(req.params.slug);
 
   if (!film) {
     return res.status(404).json({ error: 'Film not found' });

@@ -3,6 +3,7 @@ node_modules/
 package-lock.json
 /.pnp
 .pnp.js
+/web-page-creation
 
 # Environment
 .env
@@ -22,4 +23,4 @@ logs
 # Build output
 dist/
 build/
-.next/-
+.next/

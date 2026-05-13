@@ -1,6 +1,6 @@
 jest.mock('../../../src/db/films', () => ({
   getPublishedFilms: jest.fn(),
-  getFilmById: jest.fn(),
+  getFilmBySlug: jest.fn(),
 }));
 
 jest.mock('../../../src/lib/cloudfront', () => ({
@@ -9,12 +9,13 @@ jest.mock('../../../src/lib/cloudfront', () => ({
 
 const request = require('supertest');
 const app = require('../../../src/app');
-const { getPublishedFilms, getFilmById } = require('../../../src/db/films');
+const { getPublishedFilms, getFilmBySlug } = require('../../../src/db/films');
 
 // Full film object as it comes out of the DB (includes hls_manifest_url)
 const mockFilmFull = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   title: 'Test Film',
+  slug: 'test-film',
   year: 2020,
   director: 'Test Director',
   description: 'A test film about the midwest',
@@ -57,12 +58,12 @@ describe('GET /api/films', () => {
   });
 });
 
-describe('GET /api/films/:id', () => {
+describe('GET /api/films/:slug', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('returns film metadata with a signed HLS URL', async () => {
-    getFilmById.mockResolvedValue(mockFilmFull);
-    const res = await request(app).get(`/api/films/${mockFilmFull.id}`);
+    getFilmBySlug.mockResolvedValue(mockFilmFull);
+    const res = await request(app).get(`/api/films/${mockFilmFull.slug}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('hls_url');
@@ -70,15 +71,15 @@ describe('GET /api/films/:id', () => {
   });
 
   it('does not expose the raw hls_manifest_url', async () => {
-    getFilmById.mockResolvedValue(mockFilmFull);
-    const res = await request(app).get(`/api/films/${mockFilmFull.id}`);
+    getFilmBySlug.mockResolvedValue(mockFilmFull);
+    const res = await request(app).get(`/api/films/${mockFilmFull.slug}`);
 
     expect(res.body).not.toHaveProperty('hls_manifest_url');
   });
 
   it('returns 404 when the film does not exist or is unpublished', async () => {
-    getFilmById.mockResolvedValue(null);
-    const res = await request(app).get('/api/films/nonexistent-id');
+    getFilmBySlug.mockResolvedValue(null);
+    const res = await request(app).get('/api/films/nonexistent-slug');
 
     expect(res.status).toBe(404);
   });
