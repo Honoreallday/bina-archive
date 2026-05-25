@@ -1,26 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Save, Trash2, Eye, Film, Image, X, Plus, Check } from "lucide-react"
+import { ArrowLeft, Save, Trash2, Eye, Film, Image as ImageIcon, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { authHeaders } from "@/lib/auth"
 
-// Placeholder data - replace with real data fetch
-const getFilmData = (id: string) => ({
-  id,
-  title: "Untitled Film #12",
-  year: "2024",
-  duration: "12:34",
-  description: "A contemplative piece exploring the boundaries between digital and physical spaces.",
-  credits: "Director: Artist Name\nCinematography: Camera Person\nSound: Audio Designer",
-  status: "Published",
-  collections: ["Shorts", "2020-2024"],
-  thumbnail: null as string | null,
-  stills: [] as string[],
-})
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 const allCollections = [
   { id: "shorts", label: "Shorts" },
@@ -29,27 +18,69 @@ const allCollections = [
   { id: "2020-2024", label: "2020-2024" },
 ]
 
+function secondsToDuration(seconds: number | null): string {
+  if (!seconds) return ""
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+  return `${m}:${String(s).padStart(2, "0")}`
+}
+
+function parseDurationToSeconds(duration: string): number | null {
+  const parts = duration.trim().split(":").map(Number)
+  if (parts.some(isNaN)) return null
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  return null
+}
+
 export default function EditFilmPage() {
   const params = useParams()
   const router = useRouter()
   const filmId = params.id as string
 
-  // Load film data
-  const initialData = getFilmData(filmId)
-
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [slug, setSlug] = useState("")
   const [metadata, setMetadata] = useState({
-    title: initialData.title,
-    year: initialData.year,
-    duration: initialData.duration,
-    description: initialData.description,
-    credits: initialData.credits,
+    title: "",
+    year: "",
+    duration: "",
+    description: "",
+    director: "",
   })
-
-  const [status, setStatus] = useState(initialData.status)
-  const [selectedCollections, setSelectedCollections] = useState<string[]>(
-    initialData.collections.map(c => c.toLowerCase().replace(" ", "-"))
-  )
+  const [published, setPublished] = useState(false)
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
+
+  useEffect(() => {
+    async function fetchFilm() {
+      try {
+        const res = await fetch(`${API_URL}/api/admin/films/${filmId}`, {
+          headers: authHeaders(),
+        })
+        if (!res.ok) throw new Error(`${res.status}`)
+        const film = await res.json()
+        setSlug(film.slug ?? "")
+        setMetadata({
+          title: film.title ?? "",
+          year: film.year ? String(film.year) : "",
+          duration: secondsToDuration(film.duration_seconds),
+          description: film.description ?? "",
+          director: film.director ?? "",
+        })
+        setPublished(film.published ?? false)
+        setSelectedCollections(Array.isArray(film.tags) ? film.tags : [])
+      } catch {
+        setError("Failed to load film.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFilm()
+  }, [filmId])
 
   const toggleCollection = (id: string) => {
     setSelectedCollections(prev =>
@@ -61,17 +92,61 @@ export default function EditFilmPage() {
 
   const handleSave = async () => {
     setIsSaving(true)
-    // Simulate save
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    alert("Changes saved successfully!")
+    setSaveError("")
+    try {
+      const res = await fetch(`${API_URL}/api/admin/films/${filmId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          title: metadata.title,
+          year: metadata.year ? Number(metadata.year) : null,
+          director: metadata.director,
+          description: metadata.description,
+          tags: selectedCollections.length > 0 ? selectedCollections : null,
+          duration_seconds: parseDurationToSeconds(metadata.duration),
+          published,
+        }),
+      })
+      if (!res.ok) throw new Error("Save failed")
+      router.push("/admin/films")
+    } catch {
+      setSaveError("Failed to save changes.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this film? This action cannot be undone.")) {
-      // Handle delete
+  const handleDelete = async () => {
+    if (!confirm("Delete this film? This cannot be undone.")) return
+    try {
+      const res = await fetch(`${API_URL}/api/admin/films/${filmId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      })
+      if (!res.ok) throw new Error()
       router.push("/admin/films")
+    } catch {
+      setSaveError("Failed to delete film.")
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 text-center text-muted-foreground">
+        Loading...
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto py-12">
+        <div className="flex items-center gap-2 text-destructive">
+          <AlertCircle className="h-5 w-5" />
+          {error}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -93,12 +168,14 @@ export default function EditFilmPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/films/${filmId}`} target="_blank">
-              <Eye className="h-4 w-4" />
-              Preview
-            </Link>
-          </Button>
+          {slug && (
+            <Button variant="outline" asChild>
+              <Link href={`/films/${slug}`} target="_blank">
+                <Eye className="h-4 w-4" />
+                Preview
+              </Link>
+            </Button>
+          )}
           <Button
             onClick={handleSave}
             disabled={isSaving}
@@ -110,6 +187,13 @@ export default function EditFilmPage() {
         </div>
       </div>
 
+      {saveError && (
+        <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {saveError}
+        </div>
+      )}
+
       {/* Status Toggle */}
       <Card className="bg-card border-border">
         <CardHeader>
@@ -119,10 +203,10 @@ export default function EditFilmPage() {
         <CardContent>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setStatus("Draft")}
+              onClick={() => setPublished(false)}
               className={`
                 px-4 py-2 rounded-md text-sm font-medium transition-colors
-                ${status === "Draft"
+                ${!published
                   ? "bg-secondary text-foreground ring-2 ring-muted-foreground"
                   : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
                 }
@@ -131,10 +215,10 @@ export default function EditFilmPage() {
               Draft
             </button>
             <button
-              onClick={() => setStatus("Published")}
+              onClick={() => setPublished(true)}
               className={`
                 px-4 py-2 rounded-md text-sm font-medium transition-colors
-                ${status === "Published"
+                ${published
                   ? "bg-accent text-accent-foreground ring-2 ring-accent"
                   : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
                 }
@@ -174,7 +258,7 @@ export default function EditFilmPage() {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Image className="h-5 w-5 text-accent" />
+              <ImageIcon className="h-5 w-5 text-accent" />
               Thumbnail
             </CardTitle>
             <CardDescription>Cover image for the film</CardDescription>
@@ -182,7 +266,7 @@ export default function EditFilmPage() {
           <CardContent>
             <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
               <div className="text-center">
-                <Image className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No thumbnail</p>
                 <Button variant="outline" size="sm" className="mt-3">
                   Upload Thumbnail
@@ -255,16 +339,15 @@ export default function EditFilmPage() {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="credits" className="text-sm font-medium text-foreground">
-              Credits
+            <label htmlFor="director" className="text-sm font-medium text-foreground">
+              Director
             </label>
-            <textarea
-              id="credits"
-              value={metadata.credits}
-              onChange={(e) => setMetadata(prev => ({ ...prev, credits: e.target.value }))}
-              placeholder="Director, cinematographer, etc..."
-              rows={3}
-              className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+            <Input
+              id="director"
+              value={metadata.director}
+              onChange={(e) => setMetadata(prev => ({ ...prev, director: e.target.value }))}
+              placeholder="Director's name"
+              className="bg-secondary border-border"
             />
           </div>
         </CardContent>

@@ -14,16 +14,17 @@ const { uniqueSlug } = require('../lib/slug');
 const router = Router();
 
 // POST /api/admin/upload-url
-// Body: { filename: string, contentType: string }
-// Returns a presigned S3 PUT URL and the resulting S3 key
+// Body: { filename: string, contentType: string, prefix?: string }
+// prefix defaults to 'raw' for video files; pass 'thumbnails' for images.
+// Returns a presigned S3 PUT URL, the resulting S3 key, and a cdnUrl for non-raw uploads.
 router.post('/upload-url', async (req, res) => {
-  const { filename, contentType } = req.body;
+  const { filename, contentType, prefix = 'raw' } = req.body;
 
   if (!filename || !contentType) {
     return res.status(400).json({ error: 'filename and contentType are required' });
   }
 
-  const key = `raw/${Date.now()}-${filename}`;
+  const key = `${prefix}/${Date.now()}-${filename}`;
 
   const command = new PutObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
@@ -33,14 +34,17 @@ router.post('/upload-url', async (req, res) => {
 
   const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
-  res.json({ url, key });
+  const cloudfrontDomain = process.env.CLOUDFRONT_DOMAIN;
+  const cdnUrl = cloudfrontDomain ? `https://${cloudfrontDomain}/${key}` : null;
+
+  res.json({ url, key, cdnUrl });
 });
 
 // POST /api/admin/films
-// Body: { rawKey, title, year, director, description, genre, tags, duration_seconds }
+// Body: { rawKey, title, year, director, description, genre, tags, duration_seconds, thumbnail_url?, published? }
 // Derives the HLS manifest URL from the raw S3 key and saves the film to the DB
 router.post('/films', async (req, res) => {
-  const { rawKey, title, year, director, description, genre, tags, duration_seconds } = req.body;
+  const { rawKey, title, year, director, description, genre, tags, duration_seconds, thumbnail_url, published } = req.body;
 
   if (!rawKey || !title) {
     return res.status(400).json({ error: 'rawKey and title are required' });
@@ -56,10 +60,10 @@ router.post('/films', async (req, res) => {
 
   const { rows } = await pool.query(
     `INSERT INTO films
-      (title, slug, year, director, description, genre, tags, duration_seconds, raw_s3_key, hls_manifest_url)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      (title, slug, year, director, description, genre, tags, duration_seconds, raw_s3_key, hls_manifest_url, thumbnail_url, published)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
-    [title, slug, year, director, description, genre, tags, duration_seconds, rawKey, hls_manifest_url]
+    [title, slug, year, director, description, genre, tags, duration_seconds, rawKey, hls_manifest_url, thumbnail_url ?? null, published === true]
   );
 
   res.status(201).json(rows[0]);

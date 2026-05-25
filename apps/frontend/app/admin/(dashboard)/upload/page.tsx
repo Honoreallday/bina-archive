@@ -1,10 +1,14 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Upload, Film, Image, X, Plus, Check } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Upload, Film, Image, X, Plus, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { authHeaders } from "@/lib/auth"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 const collections = [
   { id: "shorts", label: "Shorts" },
@@ -13,14 +17,39 @@ const collections = [
   { id: "2020-2024", label: "2020-2024" },
 ]
 
+function parseDurationToSeconds(duration: string): number | null {
+  const parts = duration.trim().split(":").map(Number)
+  if (parts.some(isNaN)) return null
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  return null
+}
+
+function uploadToS3(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open("PUT", url)
+    xhr.setRequestHeader("Content-Type", file.type)
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    })
+    xhr.addEventListener("load", () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`S3 upload failed: ${xhr.status}`))))
+    xhr.addEventListener("error", () => reject(new Error("S3 upload network error")))
+    xhr.send(file)
+  })
+}
+
 export default function AdminUploadPage() {
+  const router = useRouter()
   const [filmFile, setFilmFile] = useState<File | null>(null)
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [stillFiles, setStillFiles] = useState<File[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadPhase, setUploadPhase] = useState("")
+  const [error, setError] = useState("")
   const [selectedCollections, setSelectedCollections] = useState<string[]>([])
-  
+
   const filmInputRef = useRef<HTMLInputElement>(null)
   const thumbnailInputRef = useRef<HTMLInputElement>(null)
   const stillsInputRef = useRef<HTMLInputElement>(null)
@@ -30,7 +59,7 @@ export default function AdminUploadPage() {
     year: new Date().getFullYear().toString(),
     duration: "",
     description: "",
-    credits: "",
+    director: "",
   })
 
   const handleFilmDrop = (e: React.DragEvent) => {
@@ -67,35 +96,72 @@ export default function AdminUploadPage() {
     )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, publishImmediately: boolean) => {
     e.preventDefault()
     if (!filmFile) return
 
     setIsUploading(true)
-    
-    // Simulate upload progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 200))
-      setUploadProgress(i)
-    }
+    setError("")
 
-    // Reset form after "upload"
-    setTimeout(() => {
+    try {
+      // Step 1: get presigned URL for the video file
+      setUploadPhase("Preparing upload...")
+      const urlRes = await fetch(`${API_URL}/api/admin/upload-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ filename: filmFile.name, contentType: filmFile.type, prefix: "raw" }),
+      })
+      if (!urlRes.ok) throw new Error("Failed to get upload URL")
+      const { url: videoUploadUrl, key: rawKey } = await urlRes.json()
+
+      // Step 2: upload the video directly to S3 with real progress
+      setUploadPhase("Uploading film...")
+      await uploadToS3(videoUploadUrl, filmFile, (pct) => setUploadProgress(pct))
+
+      // Step 3: optionally upload thumbnail
+      let thumbnailUrl: string | null = null
+      if (thumbnailFile) {
+        setUploadPhase("Uploading thumbnail...")
+        setUploadProgress(0)
+        const thumbUrlRes = await fetch(`${API_URL}/api/admin/upload-url`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ filename: thumbnailFile.name, contentType: thumbnailFile.type, prefix: "thumbnails" }),
+        })
+        if (thumbUrlRes.ok) {
+          const { url: thumbUploadUrl, cdnUrl } = await thumbUrlRes.json()
+          await uploadToS3(thumbUploadUrl, thumbnailFile, (pct) => setUploadProgress(pct))
+          thumbnailUrl = cdnUrl
+        }
+      }
+
+      // Step 4: save film record to the database
+      setUploadPhase("Saving film record...")
+      setUploadProgress(100)
+      const filmRes = await fetch(`${API_URL}/api/admin/films`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          rawKey,
+          title: metadata.title,
+          year: metadata.year ? Number(metadata.year) : null,
+          director: metadata.director,
+          description: metadata.description,
+          tags: selectedCollections.length > 0 ? selectedCollections : null,
+          duration_seconds: parseDurationToSeconds(metadata.duration),
+          thumbnail_url: thumbnailUrl,
+          published: publishImmediately,
+        }),
+      })
+      if (!filmRes.ok) throw new Error("Failed to save film record")
+
+      router.push("/admin/films")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed")
       setIsUploading(false)
       setUploadProgress(0)
-      setFilmFile(null)
-      setThumbnailFile(null)
-      setStillFiles([])
-      setMetadata({
-        title: "",
-        year: new Date().getFullYear().toString(),
-        duration: "",
-        description: "",
-        credits: "",
-      })
-      setSelectedCollections([])
-      alert("Film uploaded successfully!")
-    }, 500)
+      setUploadPhase("")
+    }
   }
 
   return (
@@ -108,7 +174,14 @@ export default function AdminUploadPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="flex items-start gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={(e) => { e.preventDefault() }} className="space-y-6">
         {/* Film Upload */}
         <Card className="bg-card border-border">
           <CardHeader>
@@ -355,16 +428,15 @@ export default function AdminUploadPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="credits" className="text-sm font-medium text-foreground">
-                Credits
+              <label htmlFor="director" className="text-sm font-medium text-foreground">
+                Director
               </label>
-              <textarea
-                id="credits"
-                value={metadata.credits}
-                onChange={(e) => setMetadata(prev => ({ ...prev, credits: e.target.value }))}
-                placeholder="Director, cinematographer, etc..."
-                rows={3}
-                className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+              <Input
+                id="director"
+                value={metadata.director}
+                onChange={(e) => setMetadata(prev => ({ ...prev, director: e.target.value }))}
+                placeholder="Director's name"
+                className="bg-secondary border-border"
               />
             </div>
           </CardContent>
@@ -408,11 +480,11 @@ export default function AdminUploadPage() {
             <CardContent className="pt-6">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">Uploading...</span>
+                  <span className="text-foreground">{uploadPhase}</span>
                   <span className="text-muted-foreground">{uploadProgress}%</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-accent transition-all duration-200"
                     style={{ width: `${uploadProgress}%` }}
                   />
@@ -424,13 +496,19 @@ export default function AdminUploadPage() {
 
         {/* Submit */}
         <div className="flex items-center justify-end gap-4">
-          <Button type="button" variant="outline">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!filmFile || !metadata.title || isUploading}
+            onClick={(e) => handleSubmit(e as unknown as React.FormEvent, false)}
+          >
             Save as Draft
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="button"
             className="bg-accent text-accent-foreground hover:bg-accent/90"
             disabled={!filmFile || !metadata.title || isUploading}
+            onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
           >
             {isUploading ? "Uploading..." : "Publish Film"}
           </Button>

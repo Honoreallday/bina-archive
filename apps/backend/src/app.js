@@ -3,6 +3,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const filmsRoutes = require('./routes/films');
+const contactRoutes = require('./routes/contact');
 const { requireAuth } = require('./middleware/auth');
 
 const app = express();
@@ -15,6 +16,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/films', filmsRoutes);
+app.use('/api/contact', contactRoutes);
 app.use('/api/admin', authRoutes);
 app.use('/api/admin', requireAuth, adminRoutes);
 
