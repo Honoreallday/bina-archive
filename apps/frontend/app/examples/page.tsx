@@ -25,6 +25,14 @@ const themes = [
       "Institutional and editorial. A bold colored masthead, left category navigation, and a large feature-led front page.",
     swatches: ["#ffffff", "#1a1a1a", "#2e9e2a", "#f0f0ee"],
   },
+  {
+    slug: "terminal",
+    name: "Terminal Index",
+    inspiration: "Poetic × Archive OS",
+    description:
+      "The black canvas, mono type and pink/mint accents of Poetic, organized with the rigid window chrome, ruled tables and numbered rows of Archive OS.",
+    swatches: ["#0c0c0c", "#f4f1ea", "#ff5da2", "#7cffb2"],
+  },
 ]
 
 export default function ExamplesIndexPage() {
