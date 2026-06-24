@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { Oswald, Inter } from "next/font/google"
+import { CrtScreen } from "../_components/crt-screen"
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -41,10 +42,11 @@ const sideNav = [
 
 export default function EditorialLayout({ children }: { children: ReactNode }) {
   return (
-    <div
-      className={`${oswald.variable} ${inter.variable} min-h-screen bg-white font-[family-name:var(--font-editorial-body)] text-[#1a1a1a] selection:bg-[#2e9e2a] selection:text-white`}
-    >
-      {/* Masthead */}
+    <CrtScreen>
+      <div
+        className={`${oswald.variable} ${inter.variable} min-h-screen bg-white font-[family-name:var(--font-editorial-body)] text-[#1a1a1a] selection:bg-[#2e9e2a] selection:text-white`}
+      >
+        {/* Masthead */}
       <header className="bg-[#2e9e2a]">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/examples/editorial" className="flex items-baseline gap-3 text-white">
@@ -104,7 +106,8 @@ export default function EditorialLayout({ children }: { children: ReactNode }) {
             401 Example Street · Non-profit, artist-run · hello@thearchive.example
           </span>
         </div>
-      </footer>
-    </div>
+        </footer>
+      </div>
+    </CrtScreen>
   )
 }

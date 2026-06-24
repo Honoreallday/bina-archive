@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google"
+import { CrtScreen } from "../_components/crt-screen"
 
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -21,10 +22,11 @@ const tabs = [
 
 export default function ArchiveLayout({ children }: { children: ReactNode }) {
   return (
-    <div
-      className={`${plexMono.variable} ${plexSans.variable} min-h-screen bg-[#e8e8e6] font-[family-name:var(--font-archive-sans)] text-[#1a1a1a] selection:bg-[#b8cce4]`}
-    >
-      {/* Title bar */}
+    <CrtScreen>
+      <div
+        className={`${plexMono.variable} ${plexSans.variable} min-h-screen bg-[#e8e8e6] font-[family-name:var(--font-archive-sans)] text-[#1a1a1a] selection:bg-[#b8cce4]`}
+      >
+        {/* Title bar */}
       <div className="flex items-center justify-between border-b border-[#b9b9b4] bg-gradient-to-b from-[#f4f4f2] to-[#dcdcd8] px-3 py-1.5">
         <div className="flex items-center gap-2 font-[family-name:var(--font-archive-mono)] text-xs font-semibold">
           <span className="flex gap-1.5" aria-hidden>
@@ -57,9 +59,10 @@ export default function ArchiveLayout({ children }: { children: ReactNode }) {
 
       {children}
 
-      <div className="border-t border-[#b9b9b4] bg-[#dededa] px-3 py-1.5 font-[family-name:var(--font-archive-mono)] text-[11px] text-[#555]">
-        8 records · 182 min total · last indexed 2024-06-24
+        <div className="border-t border-[#b9b9b4] bg-[#dededa] px-3 py-1.5 font-[family-name:var(--font-archive-mono)] text-[11px] text-[#555]">
+          8 records · 182 min total · last indexed 2024-06-24
+        </div>
       </div>
-    </div>
+    </CrtScreen>
   )
 }
