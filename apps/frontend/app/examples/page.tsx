@@ -33,6 +33,14 @@ const themes = [
       "The black canvas, mono type and pink/mint accents of Poetic, organized with the rigid window chrome, ruled tables and numbered rows of Archive OS.",
     swatches: ["#0c0c0c", "#f4f1ea", "#ff5da2", "#7cffb2"],
   },
+  {
+    slug: "catalog",
+    name: "Card Catalog",
+    inspiration: "Archive OS × Poetic",
+    description:
+      "Archive OS taken further: a full desktop window with sidebar counts, gradient column headers, zebra data rows and a thumbnail grid — warmed by Poetic's paper tone, pink/mint accents and handwritten notes.",
+    swatches: ["#e4ddcd", "#f6f3ea", "#c2367a", "#7cffb2"],
+  },
 ]
 
 export default function ExamplesIndexPage() {
@@ -47,9 +55,9 @@ export default function ExamplesIndexPage() {
             Theme explorations
           </h1>
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
-            Three front-end-only directions for the archive, each shipping with its own landing,
-            films, and about page. No backend wired up — they all read the same sample film data so
-            you can compare styling head to head.
+            Front-end-only directions for the archive, each shipping with its own landing, films,
+            and about page. No backend wired up — they all read the same sample film data so you can
+            compare styling head to head.
           </p>
         </div>
       </header>
