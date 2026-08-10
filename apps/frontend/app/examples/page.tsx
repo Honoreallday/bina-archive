@@ -49,6 +49,14 @@ const themes = [
       "Terminal Index pulled back toward Poetic: the same retro window chrome and ruled tables, recolored in a warm matte charcoal with parchment type and muted dusty-rose and sage accents — dark, but no full blacks or neons.",
     swatches: ["#1b1916", "#e9e1d1", "#cf9089", "#a7b98f"],
   },
+  {
+    slug: "almanac",
+    name: "Almanac",
+    inspiration: "Archive × Poetic",
+    description:
+      "A printed reference book at full website width — no window chrome. Archive's ruled registers and counted columns carry the structure, while Poetic's oversized statement and handwritten script accent set the voice, on warm paper with ink-blue and coral.",
+    swatches: ["#efe9dd", "#211f1a", "#2f43c9", "#d95b43"],
+  },
 ]
 
 export default function ExamplesIndexPage() {
