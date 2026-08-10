@@ -41,6 +41,14 @@ const themes = [
       "Archive OS taken further: a full desktop window with sidebar counts, gradient column headers, zebra data rows and a thumbnail grid — warmed by Poetic's paper tone, pink/mint accents and handwritten notes.",
     swatches: ["#e4ddcd", "#f6f3ea", "#c2367a", "#7cffb2"],
   },
+  {
+    slug: "dusk",
+    name: "Dusk",
+    inspiration: "Poetic, after dark",
+    description:
+      "Terminal Index pulled back toward Poetic: the same retro window chrome and ruled tables, recolored in a warm matte charcoal with parchment type and muted dusty-rose and sage accents — dark, but no full blacks or neons.",
+    swatches: ["#1b1916", "#e9e1d1", "#cf9089", "#a7b98f"],
+  },
 ]
 
 export default function ExamplesIndexPage() {
