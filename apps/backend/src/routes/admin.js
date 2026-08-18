@@ -41,10 +41,14 @@ router.post('/upload-url', async (req, res) => {
 });
 
 // POST /api/admin/films
-// Body: { rawKey, title, year, director, description, genre, tags, duration_seconds, thumbnail_url?, published? }
+// Body: { rawKey, title, year, director, cinematography?, editor?, sound?, music?, description,
+//         genre, tags, duration_seconds, thumbnail_url?, stills?, published? }
 // Derives the HLS manifest URL from the raw S3 key and saves the film to the DB
 router.post('/films', async (req, res) => {
-  const { rawKey, title, year, director, description, genre, tags, duration_seconds, thumbnail_url, published } = req.body;
+  const {
+    rawKey, title, year, director, cinematography, editor, sound, music, description, genre,
+    tags, duration_seconds, thumbnail_url, stills, published,
+  } = req.body;
 
   if (!rawKey || !title) {
     return res.status(400).json({ error: 'rawKey and title are required' });
@@ -60,10 +64,15 @@ router.post('/films', async (req, res) => {
 
   const { rows } = await pool.query(
     `INSERT INTO films
-      (title, slug, year, director, description, genre, tags, duration_seconds, raw_s3_key, hls_manifest_url, thumbnail_url, published)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      (title, slug, year, director, cinematography, editor, sound, music, description, genre,
+       tags, duration_seconds, raw_s3_key, hls_manifest_url, thumbnail_url, stills, published)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      RETURNING *`,
-    [title, slug, year, director, description, genre, tags, duration_seconds, rawKey, hls_manifest_url, thumbnail_url ?? null, published === true]
+    [
+      title, slug, year, director, cinematography ?? null, editor ?? null, sound ?? null, music ?? null,
+      description, genre, tags, duration_seconds, rawKey, hls_manifest_url, thumbnail_url ?? null,
+      stills ?? null, published === true,
+    ]
   );
 
   res.status(201).json(rows[0]);
@@ -89,10 +98,14 @@ router.get('/films/:id', async (req, res) => {
 });
 
 // PATCH /api/admin/films/:id
-// Body: any subset of { title, year, director, description, genre, tags, duration_seconds, published }
+// Body: any subset of { title, year, director, cinematography, editor, sound, music, description,
+//       genre, tags, duration_seconds, stills, published }
 // Updates only the fields that are provided. Regenerates slug if title changes.
 router.patch('/films/:id', async (req, res) => {
-  const { title, year, director, description, genre, tags, duration_seconds, published } = req.body;
+  const {
+    title, year, director, cinematography, editor, sound, music, description, genre, tags,
+    duration_seconds, stills, published,
+  } = req.body;
 
   const fields = {};
 
@@ -102,10 +115,15 @@ router.patch('/films/:id', async (req, res) => {
   }
   if (year !== undefined)             fields.year = year;
   if (director !== undefined)         fields.director = director;
+  if (cinematography !== undefined)   fields.cinematography = cinematography;
+  if (editor !== undefined)           fields.editor = editor;
+  if (sound !== undefined)            fields.sound = sound;
+  if (music !== undefined)            fields.music = music;
   if (description !== undefined)      fields.description = description;
   if (genre !== undefined)            fields.genre = genre;
   if (tags !== undefined)             fields.tags = tags;
   if (duration_seconds !== undefined) fields.duration_seconds = duration_seconds;
+  if (stills !== undefined)           fields.stills = stills;
   if (published !== undefined) {
     if (typeof published !== 'boolean') {
       return res.status(400).json({ error: 'published must be a boolean' });

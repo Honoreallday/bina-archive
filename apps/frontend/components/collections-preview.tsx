@@ -1,63 +1,71 @@
 import Link from "next/link"
-import { ArrowUpRight } from "lucide-react"
+import { getFilmsByCollection } from "@/lib/films-data"
 
-const collections = [
+const collectionsMeta = [
   {
-    name: "Shorts",
-    count: 12,
-    description: "Brief explorations under 15 minutes",
-    slug: "shorts",
-  },
-  {
-    name: "Installations",
-    count: 5,
-    description: "Multi-channel and gallery works",
-    slug: "installations",
-  },
-  {
-    name: "Documentary",
-    count: 8,
-    description: "Non-fiction and observational pieces",
     slug: "documentary",
+    key: "Documentary",
+    label: "Documentary",
+    desc: "Observational and essay films exploring place, memory, and community.",
   },
   {
-    name: "2020-2024",
-    count: 15,
-    description: "Recent works from the past four years",
+    slug: "shorts",
+    key: "Shorts",
+    label: "Shorts",
+    desc: "Brief works under 20 minutes, ranging from experimental sketches to condensed narratives.",
+  },
+  {
+    slug: "installations",
+    key: "Installations",
+    label: "Installations",
+    desc: "Multi-channel and site-specific works designed for gallery exhibition.",
+  },
+  {
     slug: "2020-2024",
+    key: "2020-2024",
+    label: "2020 – 2024",
+    desc: "Recent works produced during and after the pandemic.",
   },
 ]
 
 export function CollectionsPreview() {
-  return (
-    <section className="px-6 lg:px-8 py-24 border-t border-border bg-secondary/30">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-12">
-          <p className="text-accent text-sm tracking-widest uppercase mb-2">Browse By</p>
-          <h2 className="text-3xl md:text-4xl font-light tracking-tight text-foreground">
-            Collections
-          </h2>
-        </div>
+  const collections = collectionsMeta.map((c) => ({
+    ...c,
+    count: getFilmsByCollection(c.key).length,
+  }))
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {collections.map((collection) => (
+  return (
+    <section className="mx-auto max-w-6xl border-t border-[var(--almanac-border)] px-6 py-14 md:px-10">
+      <div className="mb-5">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">Filed under</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight">Collections</h2>
+      </div>
+
+      <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
+        <div className="grid gap-px sm:grid-cols-2">
+          {collections.map((col) => (
             <Link
-              key={collection.slug}
-              href={`/collections/${collection.slug}`}
-              className="group p-6 border border-border hover:border-muted-foreground bg-background transition-colors"
+              key={col.slug}
+              href={`/collections/${col.slug}`}
+              className="group flex flex-col justify-between gap-4 bg-[var(--almanac-parchment)] p-5 hover:bg-[var(--almanac-blue)] hover:text-[var(--almanac-parchment)]"
             >
-              <div className="flex items-start justify-between mb-4">
-                <span className="text-2xl font-light text-foreground group-hover:text-accent transition-colors">
-                  {collection.name}
-                </span>
-                <ArrowUpRight className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors" />
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-base font-bold tracking-tight">{col.label}</h3>
+                  <span className="text-[11px] tabular-nums text-[var(--almanac-gold)] opacity-0 group-hover:opacity-100">
+                    {String(col.count).padStart(2, "0")}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--almanac-ink-mid)] group-hover:text-[var(--almanac-parchment)]/80">
+                  {col.desc}
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                {collection.description}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {collection.count} films
-              </p>
+              <div className="flex items-center justify-between border-t border-[var(--almanac-border)] pt-3 group-hover:border-[var(--almanac-parchment)]/20">
+                <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)] group-hover:text-[var(--almanac-parchment)]/70">
+                  {col.count} films
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.14em]">Open →</span>
+              </div>
             </Link>
           ))}
         </div>

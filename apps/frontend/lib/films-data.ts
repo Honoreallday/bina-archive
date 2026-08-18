@@ -16,7 +16,7 @@ export interface Film {
     music?: string
   }
   image: string
-  videoUrl?: string
+  videoUrl: string
   stills?: string[]
   featured: boolean
   status: "published" | "draft"
@@ -41,6 +41,7 @@ export const films: Film[] = [
       music: "Ambient Works Collective",
     },
     image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     stills: [
       "https://images.unsplash.com/photo-1518929458119-e5bf444c30f4?q=80&w=1974&auto=format&fit=crop",
       "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=2059&auto=format&fit=crop",
@@ -65,6 +66,7 @@ export const films: Film[] = [
       sound: "Field Recordings",
     },
     image: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?q=80&w=2070&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     stills: [
       "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=2070&auto=format&fit=crop",
     ],
@@ -89,6 +91,7 @@ export const films: Film[] = [
       music: "String Quartet No. 4",
     },
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2070&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     stills: [
       "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=2070&auto=format&fit=crop",
       "https://images.unsplash.com/photo-1616530940355-351fabd9524b?q=80&w=1935&auto=format&fit=crop",
@@ -113,6 +116,7 @@ export const films: Film[] = [
       sound: "Tokyo Field Recording Project",
     },
     image: "https://images.unsplash.com/photo-1542204165-65bf26472b9b?q=80&w=1974&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     stills: [
       "https://images.unsplash.com/photo-1579762593175-20226054cad0?q=80&w=2036&auto=format&fit=crop",
     ],
@@ -134,6 +138,7 @@ export const films: Film[] = [
       sound: "Archive Artist",
     },
     image: "https://images.unsplash.com/photo-1518929458119-e5bf444c30f4?q=80&w=1974&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     featured: false,
     status: "published",
   },
@@ -155,6 +160,7 @@ export const films: Film[] = [
       music: "Nordic Folk Ensemble",
     },
     image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=2059&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     stills: [
       "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925&auto=format&fit=crop",
     ],
@@ -178,6 +184,7 @@ export const films: Film[] = [
       sound: "Empty Room Recordings",
     },
     image: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=2070&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     featured: false,
     status: "published",
   },
@@ -199,6 +206,7 @@ export const films: Film[] = [
       music: "Appalachian Strings",
     },
     image: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=2070&auto=format&fit=crop",
+    videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     stills: [
       "https://images.unsplash.com/photo-1542204165-65bf26472b9b?q=80&w=1974&auto=format&fit=crop",
     ],

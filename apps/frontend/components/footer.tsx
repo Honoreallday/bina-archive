@@ -1,74 +1,39 @@
 import Link from "next/link"
 
-const navigation = {
-  main: [
-    { name: "Films", href: "/films" },
-    { name: "Collections", href: "/collections" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
-  ],
-  secondary: [
-    { name: "Screening Inquiries", href: "/contact" },
-    { name: "Licensing", href: "/contact" },
-    { name: "Press", href: "/contact" },
-  ],
-}
+const nav = [
+  { href: "/films", label: "Films" },
+  { href: "/collections", label: "Collections" },
+  { href: "/distribution", label: "Distribution" },
+  { href: "/submissions", label: "Submissions" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+]
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-secondary/20">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div>
-            <Link href="/" className="text-lg font-medium tracking-tight text-foreground">
-              Archive
-            </Link>
-            <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-              A digital archive preserving and sharing a collection of moving image works.
-            </p>
-          </div>
-          
-          <div>
-            <p className="text-sm font-medium text-foreground mb-4">Navigation</p>
-            <ul className="space-y-3">
-              {navigation.main.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          <div>
-            <p className="text-sm font-medium text-foreground mb-4">Inquiries</p>
-            <ul className="space-y-3">
-              {navigation.secondary.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+    <footer className="border-t-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-[var(--almanac-ink-light)] md:px-10">
+        <div className="flex flex-wrap items-center gap-2">
+          {nav.map((item, i) => (
+            <span key={item.href} className="flex items-center gap-2">
+              <Link href={item.href} className="hover:text-[var(--almanac-ink)]">
+                {item.label}
+              </Link>
+              {i < nav.length - 1 && <span className="text-[var(--almanac-border)]">·</span>}
+            </span>
+          ))}
         </div>
-        
-        <div className="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-muted-foreground">
-            All works displayed are copyrighted and may not be reproduced without permission.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {new Date().getFullYear()}
-          </p>
-        </div>
+        <a
+          href="mailto:dreamchambers@proton.me"
+          className="font-[family-name:var(--font-almanac-script)] text-base normal-case tracking-normal text-[var(--almanac-blue)] hover:text-[var(--almanac-red)]"
+        >
+          dreamchambers@proton.me
+        </a>
+      </div>
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 border-t border-[var(--almanac-border)] px-6 py-4 text-[11px] uppercase tracking-[0.18em] text-[var(--almanac-ink-light)] md:px-10">
+        <span>All works displayed are copyrighted and may not be reproduced without permission.</span>
+        <span>© {new Date().getFullYear()} Dream Chambers Public Access</span>
       </div>
     </footer>
   )

@@ -5,28 +5,31 @@ import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { getFilmsByCollection } from "@/lib/films-data"
-import { ArrowLeft, ArrowRight, Clock, Play } from "lucide-react"
 
 const collections: Record<string, { title: string; description: string; longDescription: string }> = {
   documentary: {
     title: "Documentary",
     description: "Observational and essay films exploring place, memory, and community.",
-    longDescription: "This collection gathers documentary works that move between observation and meditation. These films prioritize duration and patience, allowing subjects to reveal themselves gradually. The work draws from traditions of direct cinema while incorporating essayistic elements—voiceover, archival material, and formal experimentation. Themes of displacement, labor, and the relationship between landscape and memory recur throughout.",
+    longDescription:
+      "This collection gathers documentary works that move between observation and meditation. These films prioritize duration and patience, allowing subjects to reveal themselves gradually. The work draws from traditions of direct cinema while incorporating essayistic elements — voiceover, archival material, and formal experimentation. Themes of displacement, labor, and the relationship between landscape and memory recur throughout.",
   },
   shorts: {
     title: "Shorts",
     description: "Brief works under 20 minutes, ranging from experimental sketches to condensed narratives.",
-    longDescription: "The short-form works collected here represent some of the most experimental pieces in the archive. Many began as sketches or tests that evolved into standalone works. Others were created specifically for gallery contexts where looping and duration function differently than in theatrical presentation. These pieces often focus on texture, rhythm, and the materiality of the film medium itself.",
+    longDescription:
+      "The short-form works collected here represent some of the most experimental pieces in the archive. Many began as sketches or tests that evolved into standalone works. Others were created specifically for gallery contexts where looping and duration function differently than in theatrical presentation.",
   },
   installations: {
     title: "Installations",
     description: "Multi-channel and site-specific works designed for gallery exhibition.",
-    longDescription: "Installation works require physical presence and cannot be fully experienced through documentation alone. The pieces in this collection were created for specific architectural contexts and viewing conditions—multiple screens, spatial audio, and durational loops that unfold over hours. What you find here are excerpts, documentation, and single-channel adaptations that gesture toward the full experience.",
+    longDescription:
+      "Installation works require physical presence and cannot be fully experienced through documentation alone. The pieces in this collection were created for specific architectural contexts and viewing conditions — multiple screens, spatial audio, and durational loops that unfold over hours.",
   },
   "2020-2024": {
-    title: "2020 - 2024",
+    title: "2020 – 2024",
     description: "Recent works produced during and after the pandemic.",
-    longDescription: "The works in this collection were produced during a period of profound disruption. Made under conditions of isolation and restriction, they reflect on distance, intimacy, and the mediated nature of human connection. Several pieces incorporate video call footage, screen recordings, and other artifacts of pandemic-era communication. Others turn inward, exploring domestic space with new intensity.",
+    longDescription:
+      "The works in this collection were produced during a period of profound disruption. Made under conditions of isolation and restriction, they reflect on distance, intimacy, and the mediated nature of human connection. Several pieces incorporate video call footage, screen recordings, and other artifacts of pandemic-era communication.",
   },
 }
 
@@ -39,11 +42,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const collection = collections[slug]
 
   if (!collection) {
-    return { title: "Collection Not Found | Archive" }
+    return { title: "Collection Not Found | Dream Chambers Public Access" }
   }
 
   return {
-    title: `${collection.title} | Collections | Archive`,
+    title: `${collection.title} | Collections | Dream Chambers Public Access`,
     description: collection.description,
   }
 }
@@ -58,130 +61,95 @@ export default async function CollectionPage({ params }: Props) {
 
   const collectionKey = slug === "2020-2024" ? "2020-2024" : collection.title
   const films = getFilmsByCollection(collectionKey)
+  const totalMins = films.reduce((acc, f) => acc + (Number.parseInt(f.duration, 10) || 0), 0)
+  const others = Object.entries(collections).filter(([key]) => key !== slug)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
       <Header />
 
-      <main>
-        {/* Hero Section */}
-        <section className="px-6 lg:px-8 pt-32 pb-16">
-          <div className="max-w-7xl mx-auto">
-            <Link
-              href="/collections"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              All Collections
-            </Link>
+      <main className="mx-auto max-w-6xl px-6 py-10 pb-16 md:px-10">
+        <Link
+          href="/collections"
+          className="mb-8 inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-ink)]"
+        >
+          ← all collections
+        </Link>
 
-            <p className="text-accent text-sm tracking-widest uppercase mb-6">
-              Collection
-            </p>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-foreground mb-8">
-              {collection.title}
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-3xl leading-relaxed">
-              {collection.longDescription}
-            </p>
+        <div className="mb-8 border-b border-[var(--almanac-border)] pb-6">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-red)]">Collection</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">{collection.title}</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--almanac-ink-mid)]">
+            {collection.longDescription}
+          </p>
+          <div className="mt-4 flex gap-4 text-[11px] uppercase tracking-[0.16em] text-[var(--almanac-ink-light)]">
+            <span>{films.length} films</span>
+            <span>·</span>
+            <span>{totalMins} min total</span>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-6 mt-8 text-sm text-muted-foreground">
-              <span>{films.length} films</span>
-              <span className="text-border">|</span>
-              <span>
-                {films.reduce((acc, film) => {
-                  const mins = parseInt(film.duration.replace(/\D/g, ""))
-                  return acc + mins
-                }, 0)} minutes total
-              </span>
+        {films.length === 0 ? (
+          <p className="text-sm text-[var(--almanac-ink-light)]">No films in this collection yet.</p>
+        ) : (
+          <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
+            <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-3">
+              {films.map((film, i) => (
+                <Link
+                  key={film.id}
+                  href={`/films/${film.slug}`}
+                  className="group flex flex-col bg-[var(--almanac-parchment)]"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden border-b border-[var(--almanac-ink)] bg-[var(--almanac-parchment-alt)]">
+                    <Image
+                      src={film.image}
+                      alt={film.title}
+                      fill
+                      className="object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col p-4">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <span className="text-[11px] tabular-nums text-[var(--almanac-ink-light)] opacity-70">
+                        {String(i + 1).padStart(3, "0")}
+                      </span>
+                      <span className="border border-[var(--almanac-border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]">
+                        {film.category}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold leading-tight tracking-tight">{film.title}</h3>
+                    <p className="mt-1 font-[family-name:var(--font-almanac-script)] text-base text-[var(--almanac-blue)]">
+                      {film.year} · {film.duration}
+                    </p>
+                    <p className="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-[var(--almanac-ink-mid)]">
+                      {film.description}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
-        </section>
+        )}
 
-        {/* Films Grid */}
-        <section className="px-6 lg:px-8 py-16 border-t border-border">
-          <div className="max-w-7xl mx-auto">
-            {films.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-muted-foreground">
-                  No films in this collection yet.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {films.map((film) => (
-                  <Link
-                    key={film.id}
-                    href={`/films/${film.slug}`}
-                    className="group"
-                  >
-                    <div className="relative aspect-video overflow-hidden bg-secondary border border-border group-hover:border-muted-foreground transition-colors">
-                      <Image
-                        src={film.image}
-                        alt={film.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full bg-foreground/90 flex items-center justify-center">
-                          <Play className="h-5 w-5 text-background ml-0.5" fill="currentColor" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                        <span>{film.category}</span>
-                        <span className="text-border">|</span>
-                        <span>{film.year}</span>
-                        <span className="text-border">|</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {film.duration}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-medium text-foreground group-hover:text-accent transition-colors">
-                        {film.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {film.description}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Other Collections */}
-        <section className="px-6 lg:px-8 py-16 border-t border-border bg-secondary/30">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-8">
-              Other Collections
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(collections)
-                .filter(([key]) => key !== slug)
-                .slice(0, 3)
-                .map(([key, coll]) => (
-                  <Link
-                    key={key}
-                    href={`/collections/${key}`}
-                    className="group p-6 border border-border hover:border-muted-foreground transition-colors"
-                  >
-                    <h3 className="text-lg font-medium text-foreground group-hover:text-accent transition-colors mb-2">
-                      {coll.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {coll.description}
-                    </p>
-                    <div className="flex items-center gap-2 mt-4 text-sm text-foreground">
-                      <span>View collection</span>
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </div>
-                  </Link>
-                ))}
+        <section className="mt-12 border-t border-[var(--almanac-border)] pt-8">
+          <p className="mb-5 text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
+            Other collections
+          </p>
+          <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
+            <div className="grid gap-px sm:grid-cols-3">
+              {others.slice(0, 3).map(([key, col]) => (
+                <Link
+                  key={key}
+                  href={`/collections/${key}`}
+                  className="group bg-[var(--almanac-parchment)] p-4 hover:bg-[var(--almanac-blue)] hover:text-[var(--almanac-parchment)]"
+                >
+                  <h3 className="text-sm font-bold">{col.title}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--almanac-ink-mid)] group-hover:text-[var(--almanac-parchment)]/80">
+                    {col.description}
+                  </p>
+                  <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em]">Open →</p>
+                </Link>
+              ))}
             </div>
           </div>
         </section>

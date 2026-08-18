@@ -12,7 +12,8 @@ async function getPublishedFilms() {
 
 async function getFilmById(id) {
   const { rows } = await pool.query(
-    `SELECT id, title, slug, year, director, description, genre, tags, duration_seconds, thumbnail_url, hls_manifest_url, created_at
+    `SELECT id, title, slug, year, director, cinematography, editor, sound, music, description,
+            genre, tags, duration_seconds, thumbnail_url, stills, hls_manifest_url, created_at
      FROM films
      WHERE id = $1 AND published = TRUE`,
     [id]
@@ -22,7 +23,8 @@ async function getFilmById(id) {
 
 async function getFilmBySlug(slug) {
   const { rows } = await pool.query(
-    `SELECT id, title, slug, year, director, description, genre, tags, duration_seconds, thumbnail_url, hls_manifest_url, created_at
+    `SELECT id, title, slug, year, director, cinematography, editor, sound, music, description,
+            genre, tags, duration_seconds, thumbnail_url, stills, hls_manifest_url, created_at
      FROM films
      WHERE slug = $1 AND published = TRUE`,
     [slug]
@@ -32,8 +34,9 @@ async function getFilmBySlug(slug) {
 
 async function getAdminFilmById(id) {
   const { rows } = await pool.query(
-    `SELECT id, title, slug, year, director, description, genre, tags, duration_seconds,
-            thumbnail_url, hls_manifest_url, raw_s3_key, status, published, created_at, updated_at
+    `SELECT id, title, slug, year, director, cinematography, editor, sound, music, description,
+            genre, tags, duration_seconds, thumbnail_url, stills, hls_manifest_url, raw_s3_key,
+            status, published, created_at, updated_at
      FROM films
      WHERE id = $1`,
     [id]
@@ -43,7 +46,10 @@ async function getAdminFilmById(id) {
 
 // Accepts any subset of updatable fields — only touches what's provided.
 async function updateFilm(id, fields) {
-  const allowed = ['title', 'slug', 'year', 'director', 'description', 'genre', 'tags', 'duration_seconds', 'published'];
+  const allowed = [
+    'title', 'slug', 'year', 'director', 'cinematography', 'editor', 'sound', 'music',
+    'description', 'genre', 'tags', 'duration_seconds', 'stills', 'published',
+  ];
   const setClauses = [];
   const values = [];
   let i = 1;

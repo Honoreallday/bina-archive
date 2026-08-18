@@ -2,36 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import {
-  Search,
-  Filter,
-  Plus,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
-  Film,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { authHeaders } from "@/lib/auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
@@ -42,31 +12,28 @@ interface AdminFilm {
   slug: string
   year: number
   director: string
-  status: string
   published: boolean
   created_at: string
 }
 
-const statusOptions = ["All", "Published", "Draft"]
+const STATUS_OPTIONS = ["All", "Published", "Draft"] as const
 
 export default function AdminFilmsPage() {
   const [films, setFilms] = useState<AdminFilm[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("All")
+  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>("All")
   const [sortBy, setSortBy] = useState<"title" | "date">("date")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const PER_PAGE = 10
 
   const fetchFilms = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
-      const res = await fetch(`${API_URL}/api/admin/films`, {
-        headers: authHeaders(),
-      })
+      const res = await fetch(`${API_URL}/api/admin/films`, { headers: authHeaders() })
       if (!res.ok) throw new Error(`${res.status}`)
       setFilms(await res.json())
     } catch {
@@ -76,9 +43,7 @@ export default function AdminFilmsPage() {
     }
   }, [])
 
-  useEffect(() => {
-    fetchFilms()
-  }, [fetchFilms])
+  useEffect(() => { fetchFilms() }, [fetchFilms])
 
   const handleTogglePublish = async (film: AdminFilm) => {
     const updated = { ...film, published: !film.published }
@@ -105,264 +70,248 @@ export default function AdminFilmsPage() {
       })
       if (!res.ok) throw new Error()
     } catch {
-      setFilms((prev) => [...prev, film].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ))
+      setFilms((prev) =>
+        [...prev, film].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+      )
     }
   }
 
-  const filteredFilms = films
-    .filter((film) => {
-      const matchesSearch = film.title.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus =
+  const filtered = films
+    .filter((f) => {
+      const matchSearch = f.title.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchStatus =
         statusFilter === "All" ||
-        (statusFilter === "Published" && film.published) ||
-        (statusFilter === "Draft" && !film.published)
-      return matchesSearch && matchesStatus
+        (statusFilter === "Published" && f.published) ||
+        (statusFilter === "Draft" && !f.published)
+      return matchSearch && matchStatus
     })
     .sort((a, b) => {
-      const comparison =
+      const cmp =
         sortBy === "title"
           ? a.title.localeCompare(b.title)
           : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      return sortOrder === "asc" ? comparison : -comparison
+      return sortOrder === "asc" ? cmp : -cmp
     })
 
-  const totalPages = Math.ceil(filteredFilms.length / itemsPerPage)
-  const paginatedFilms = filteredFilms.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const totalPages = Math.ceil(filtered.length / PER_PAGE)
+  const paginated = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE)
 
   const toggleSort = (field: "title" | "date") => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-    } else {
-      setSortBy(field)
-      setSortOrder("desc")
-    }
+    if (sortBy === field) setSortOrder((o) => (o === "asc" ? "desc" : "asc"))
+    else { setSortBy(field); setSortOrder("desc") }
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--almanac-border)] pb-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Films</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage your film archive ({films.length} films)
+          <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
+            {films.length} records
           </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">Films</h1>
         </div>
-        <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
-          <Link href="/admin/upload">
-            <Plus className="h-4 w-4" />
-            Add Film
-          </Link>
-        </Button>
+        <Link
+          href="/admin/upload"
+          className="border-2 border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
+        >
+          + Add Film
+        </Link>
       </div>
 
       {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-          {error}
-          <button onClick={fetchFilms} className="ml-2 underline">Retry</button>
+        <div className="flex items-center justify-between border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)] px-3 py-2 text-xs text-[var(--almanac-ink-mid)]">
+          <span>{error}</span>
+          <button
+            onClick={fetchFilms}
+            className="ml-4 font-bold uppercase tracking-wide hover:text-[var(--almanac-ink)]"
+          >
+            Retry
+          </button>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search films..."
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-48">
+          <input
+            type="text"
+            placeholder="Search films…"
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value)
-              setCurrentPage(1)
-            }}
-            className="pl-9 bg-secondary border-border"
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1) }}
+            className="w-full border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Status: {statusFilter}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {statusOptions.map((status) => (
-              <DropdownMenuItem
-                key={status}
-                onClick={() => {
-                  setStatusFilter(status)
-                  setCurrentPage(1)
-                }}
-              >
-                {status}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex border-2 border-[var(--almanac-ink)]">
+          {STATUS_OPTIONS.map((s) => (
+            <button
+              key={s}
+              onClick={() => { setStatusFilter(s); setCurrentPage(1) }}
+              className={`border-r border-[var(--almanac-ink)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] last:border-r-0 ${
+                statusFilter === s
+                  ? "bg-[var(--almanac-ink)] text-[var(--almanac-parchment)]"
+                  : "hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-              <TableHead className="w-12"></TableHead>
-              <TableHead>
+      <div className="overflow-x-auto border-2 border-[var(--almanac-ink)]">
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr className="bg-[var(--almanac-ink)] text-left text-[var(--almanac-parchment)]">
+              <th className="border-r border-[var(--almanac-ink-divider)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] w-10">
+                No.
+              </th>
+              <th className="border-r border-[var(--almanac-ink-divider)] px-3 py-2">
                 <button
                   onClick={() => toggleSort("title")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.14em] hover:text-[var(--almanac-gold)]"
                 >
-                  Title
-                  <ArrowUpDown className="h-3 w-3" />
+                  Title {sortBy === "title" ? (sortOrder === "asc" ? "↑" : "↓") : "↕"}
                 </button>
-              </TableHead>
-              <TableHead>Year</TableHead>
-              <TableHead>Director</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
+              </th>
+              <th className="border-r border-[var(--almanac-ink-divider)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em]">
+                Year
+              </th>
+              <th className="border-r border-[var(--almanac-ink-divider)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em]">
+                Director
+              </th>
+              <th className="border-r border-[var(--almanac-ink-divider)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em]">
+                Status
+              </th>
+              <th className="border-r border-[var(--almanac-ink-divider)] px-3 py-2">
                 <button
                   onClick={() => toggleSort("date")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.14em] hover:text-[var(--almanac-gold)]"
                 >
-                  Created
-                  <ArrowUpDown className="h-3 w-3" />
+                  Created {sortBy === "date" ? (sortOrder === "asc" ? "↑" : "↓") : "↕"}
                 </button>
-              </TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+              </th>
+              <th className="px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em]">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : paginatedFilms.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No films found
-                </TableCell>
-              </TableRow>
+              <tr>
+                <td colSpan={7} className="px-3 py-8 text-center text-[var(--almanac-ink-light)]">
+                  Loading…
+                </td>
+              </tr>
+            ) : paginated.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-8 text-center text-[var(--almanac-ink-light)]">
+                  No films found.
+                </td>
+              </tr>
             ) : (
-              paginatedFilms.map((film) => (
-                <TableRow key={film.id}>
-                  <TableCell>
-                    <div className="w-10 h-10 bg-secondary rounded-md flex items-center justify-center">
-                      <Film className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/admin/films/${film.id}/edit`}
-                      className="font-medium text-foreground hover:text-accent transition-colors"
-                    >
+              paginated.map((film, i) => (
+                <tr
+                  key={film.id}
+                  className={`${
+                    i % 2 === 0 ? "bg-[var(--almanac-parchment)]" : "bg-[var(--almanac-parchment-alt)]"
+                  } hover:bg-[var(--almanac-blue)] hover:text-[var(--almanac-parchment)]`}
+                >
+                  <td className="border-r border-[var(--almanac-border)] px-3 py-2 tabular-nums opacity-60">
+                    {String((currentPage - 1) * PER_PAGE + i + 1).padStart(3, "0")}
+                  </td>
+                  <td className="border-r border-[var(--almanac-border)] px-3 py-2 font-bold">
+                    <Link href={`/admin/films/${film.id}/edit`} className="hover:underline">
                       {film.title}
                     </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{film.year}</TableCell>
-                  <TableCell className="text-muted-foreground">{film.director}</TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="border-r border-[var(--almanac-border)] px-3 py-2 tabular-nums">
+                    {film.year}
+                  </td>
+                  <td className="border-r border-[var(--almanac-border)] px-3 py-2">{film.director}</td>
+                  <td className="border-r border-[var(--almanac-border)] px-3 py-2">
                     <button
                       onClick={() => handleTogglePublish(film)}
-                      className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                      className={`border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors ${
                         film.published
-                          ? "bg-accent/20 text-accent hover:bg-accent/30"
-                          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                          ? "border-[var(--almanac-blue)] text-[var(--almanac-blue)] hover:bg-[var(--almanac-blue)] hover:text-[var(--almanac-parchment)]"
+                          : "border-[var(--almanac-border)] text-[var(--almanac-ink-light)] hover:border-[var(--almanac-ink)] hover:text-[var(--almanac-ink)]"
                       }`}
                     >
                       {film.published ? "Published" : "Draft"}
                     </button>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  </td>
+                  <td className="border-r border-[var(--almanac-border)] px-3 py-2 tabular-nums">
                     {new Date(film.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/films/${film.slug}`} className="flex items-center gap-2">
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/films/${film.id}/edit`} className="flex items-center gap-2">
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(film)}
-                          className="text-destructive focus:text-destructive flex items-center gap-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-3">
+                      <Link
+                        href={`/films/${film.slug}`}
+                        className="text-[11px] uppercase tracking-[0.1em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-blue)]"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/admin/films/${film.id}/edit`}
+                        className="text-[11px] font-bold uppercase tracking-[0.1em] hover:text-[var(--almanac-blue)]"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(film)}
+                        className="text-[11px] uppercase tracking-[0.1em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-red)]"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, filteredFilms.length)} of{" "}
-            {filteredFilms.length} films
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-[var(--almanac-ink-light)]">
+            {(currentPage - 1) * PER_PAGE + 1}–
+            {Math.min(currentPage * PER_PAGE, filtered.length)} of {filtered.length} films
+          </span>
+          <div className="flex border-2 border-[var(--almanac-ink)]">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              className="border-r border-[var(--almanac-ink)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-30"
             >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="sr-only">Previous page</span>
-            </Button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setCurrentPage(page)}
-                  className={currentPage === page ? "bg-accent text-accent-foreground" : ""}
-                >
-                  {page}
-                </Button>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              ← Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={`border-r border-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold last:border-r-0 ${
+                  p === currentPage
+                    ? "bg-[var(--almanac-ink)] text-[var(--almanac-parchment)]"
+                    : "hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
+              className="px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-30"
             >
-              <ChevronRight className="h-4 w-4" />
-              <span className="sr-only">Next page</span>
-            </Button>
+              Next →
+            </button>
           </div>
         </div>
       )}
+
+      <p className="font-[family-name:var(--font-almanac-script)] text-base text-[var(--almanac-blue)]">
+        {films.length} films on file — click any title to edit.
+      </p>
     </div>
   )
 }

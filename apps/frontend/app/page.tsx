@@ -7,9 +7,9 @@ import { Footer } from "@/components/footer"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
       <Header />
-      <main className="pt-16">
+      <main>
         <HeroSection />
         <FeaturedFilms />
         <CollectionsPreview />

@@ -2,141 +2,141 @@
 
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Upload, Film, Image, X, Plus, Check, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { authHeaders } from "@/lib/auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
-const collections = [
+const COLLECTIONS = [
   { id: "shorts", label: "Shorts" },
   { id: "installations", label: "Installations" },
   { id: "documentary", label: "Documentary" },
-  { id: "2020-2024", label: "2020-2024" },
+  { id: "2020-2024", label: "2020–2024" },
 ]
 
-function parseDurationToSeconds(duration: string): number | null {
-  const parts = duration.trim().split(":").map(Number)
+function parseDuration(dur: string): number | null {
+  const parts = dur.trim().split(":").map(Number)
   if (parts.some(isNaN)) return null
   if (parts.length === 2) return parts[0] * 60 + parts[1]
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
   return null
 }
 
-function uploadToS3(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
+function uploadToS3(url: string, file: File, onProgress: (pct: number) => void) {
+  return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open("PUT", url)
     xhr.setRequestHeader("Content-Type", file.type)
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
     })
-    xhr.addEventListener("load", () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`S3 upload failed: ${xhr.status}`))))
-    xhr.addEventListener("error", () => reject(new Error("S3 upload network error")))
+    xhr.addEventListener("load", () =>
+      xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`S3 ${xhr.status}`))
+    )
+    xhr.addEventListener("error", () => reject(new Error("S3 network error")))
     xhr.send(file)
   })
 }
 
+async function getUploadUrl(filename: string, contentType: string, prefix: string) {
+  const res = await fetch(`${API_URL}/api/admin/upload-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ filename, contentType, prefix }),
+  })
+  if (!res.ok) throw new Error("Failed to get upload URL")
+  return res.json() as Promise<{ url: string; key: string; cdnUrl: string | null }>
+}
+
 export default function AdminUploadPage() {
   const router = useRouter()
+  const filmInputRef = useRef<HTMLInputElement>(null)
+  const thumbInputRef = useRef<HTMLInputElement>(null)
+  const stillsInputRef = useRef<HTMLInputElement>(null)
+
   const [filmFile, setFilmFile] = useState<File | null>(null)
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [stillFiles, setStillFiles] = useState<File[]>([])
+  const [metadata, setMetadata] = useState({
+    title: "",
+    year: String(new Date().getFullYear()),
+    duration: "",
+    description: "",
+    director: "",
+    genre: "",
+    cinematography: "",
+    editor: "",
+    sound: "",
+    music: "",
+  })
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadPhase, setUploadPhase] = useState("")
   const [error, setError] = useState("")
-  const [selectedCollections, setSelectedCollections] = useState<string[]>([])
 
-  const filmInputRef = useRef<HTMLInputElement>(null)
-  const thumbnailInputRef = useRef<HTMLInputElement>(null)
-  const stillsInputRef = useRef<HTMLInputElement>(null)
-
-  const [metadata, setMetadata] = useState({
-    title: "",
-    year: new Date().getFullYear().toString(),
-    duration: "",
-    description: "",
-    director: "",
-  })
+  const toggleCollection = (id: string) =>
+    setSelectedCollections((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    )
 
   const handleFilmDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith("video/")) {
-      setFilmFile(file)
-    }
+    if (file?.type.startsWith("video/")) setFilmFile(file)
   }
 
-  const handleThumbnailDrop = (e: React.DragEvent) => {
+  const handleThumbDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith("image/")) {
-      setThumbnailFile(file)
-    }
+    if (file?.type.startsWith("image/")) setThumbnailFile(file)
   }
 
   const handleStillsDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"))
-    setStillFiles(prev => [...prev, ...files])
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"))
+    setStillFiles((prev) => [...prev, ...files])
   }
 
   const removeStill = (index: number) => {
-    setStillFiles(prev => prev.filter((_, i) => i !== index))
+    setStillFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const toggleCollection = (id: string) => {
-    setSelectedCollections(prev => 
-      prev.includes(id) 
-        ? prev.filter(c => c !== id) 
-        : [...prev, id]
-    )
-  }
-
-  const handleSubmit = async (e: React.FormEvent, publishImmediately: boolean) => {
-    e.preventDefault()
-    if (!filmFile) return
-
+  const handleSubmit = async (publishImmediately: boolean) => {
+    if (!filmFile || !metadata.title) return
     setIsUploading(true)
     setError("")
 
     try {
-      // Step 1: get presigned URL for the video file
-      setUploadPhase("Preparing upload...")
-      const urlRes = await fetch(`${API_URL}/api/admin/upload-url`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ filename: filmFile.name, contentType: filmFile.type, prefix: "raw" }),
-      })
-      if (!urlRes.ok) throw new Error("Failed to get upload URL")
-      const { url: videoUploadUrl, key: rawKey } = await urlRes.json()
+      setUploadPhase("Preparing upload…")
+      const { url: videoUrl, key: rawKey } = await getUploadUrl(filmFile.name, filmFile.type, "raw")
 
-      // Step 2: upload the video directly to S3 with real progress
-      setUploadPhase("Uploading film...")
-      await uploadToS3(videoUploadUrl, filmFile, (pct) => setUploadProgress(pct))
+      setUploadPhase("Uploading film…")
+      await uploadToS3(videoUrl, filmFile, (pct) => setUploadProgress(pct))
 
-      // Step 3: optionally upload thumbnail
       let thumbnailUrl: string | null = null
       if (thumbnailFile) {
-        setUploadPhase("Uploading thumbnail...")
+        setUploadPhase("Uploading thumbnail…")
         setUploadProgress(0)
-        const thumbUrlRes = await fetch(`${API_URL}/api/admin/upload-url`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({ filename: thumbnailFile.name, contentType: thumbnailFile.type, prefix: "thumbnails" }),
-        })
-        if (thumbUrlRes.ok) {
-          const { url: thumbUploadUrl, cdnUrl } = await thumbUrlRes.json()
-          await uploadToS3(thumbUploadUrl, thumbnailFile, (pct) => setUploadProgress(pct))
-          thumbnailUrl = cdnUrl
-        }
+        const { url: thumbUrl, cdnUrl } = await getUploadUrl(
+          thumbnailFile.name,
+          thumbnailFile.type,
+          "thumbnails"
+        )
+        await uploadToS3(thumbUrl, thumbnailFile, (pct) => setUploadProgress(pct))
+        thumbnailUrl = cdnUrl
       }
 
-      // Step 4: save film record to the database
-      setUploadPhase("Saving film record...")
+      const stillUrls: string[] = []
+      for (let i = 0; i < stillFiles.length; i++) {
+        const file = stillFiles[i]
+        setUploadPhase(`Uploading stills (${i + 1}/${stillFiles.length})…`)
+        setUploadProgress(0)
+        const { url: stillUrl, cdnUrl } = await getUploadUrl(file.name, file.type, "stills")
+        await uploadToS3(stillUrl, file, (pct) => setUploadProgress(pct))
+        if (cdnUrl) stillUrls.push(cdnUrl)
+      }
+
+      setUploadPhase("Saving film record…")
       setUploadProgress(100)
       const filmRes = await fetch(`${API_URL}/api/admin/films`, {
         method: "POST",
@@ -146,15 +146,20 @@ export default function AdminUploadPage() {
           title: metadata.title,
           year: metadata.year ? Number(metadata.year) : null,
           director: metadata.director,
+          cinematography: metadata.cinematography || null,
+          editor: metadata.editor || null,
+          sound: metadata.sound || null,
+          music: metadata.music || null,
           description: metadata.description,
+          genre: metadata.genre || null,
           tags: selectedCollections.length > 0 ? selectedCollections : null,
-          duration_seconds: parseDurationToSeconds(metadata.duration),
+          duration_seconds: parseDuration(metadata.duration),
           thumbnail_url: thumbnailUrl,
+          stills: stillUrls.length > 0 ? stillUrls : null,
           published: publishImmediately,
         }),
       })
       if (!filmRes.ok) throw new Error("Failed to save film record")
-
       router.push("/admin/films")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed")
@@ -164,356 +169,364 @@ export default function AdminUploadPage() {
     }
   }
 
+  const inputCls =
+    "w-full border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
+
+  const canSubmit = !!filmFile && !!metadata.title && !isUploading
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Upload Film</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Add a new film to the archive with metadata and media
-        </p>
+    <div className="max-w-2xl space-y-6">
+      <div className="border-b border-[var(--almanac-border)] pb-4">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">New entry</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">Upload Film</h1>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        <div className="border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)] px-3 py-2 text-xs text-[var(--almanac-ink-mid)]">
           {error}
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault() }} className="space-y-6">
-        {/* Film Upload */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Film className="h-5 w-5 text-accent" />
-              Film File
-            </CardTitle>
-            <CardDescription>Upload the main video file (MP4, MOV, WebM)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <input
-              ref={filmInputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={(e) => setFilmFile(e.target.files?.[0] || null)}
-            />
-            <div
-              onDrop={handleFilmDrop}
-              onDragOver={(e) => e.preventDefault()}
-              onClick={() => filmInputRef.current?.click()}
-              className={`
-                border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-                ${filmFile 
-                  ? "border-accent bg-accent/5" 
-                  : "border-border hover:border-muted-foreground"
-                }
-              `}
-            >
-              {filmFile ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Film className="h-8 w-8 text-accent" />
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-foreground">{filmFile.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(filmFile.size / (1024 * 1024)).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setFilmFile(null)
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop your film file, or click to browse
-                  </p>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Thumbnail & Stills */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Thumbnail */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Image className="h-5 w-5 text-accent" />
-                Thumbnail
-              </CardTitle>
-              <CardDescription>Main cover image for the film</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <input
-                ref={thumbnailInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-              />
-              <div
-                onDrop={handleThumbnailDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => thumbnailInputRef.current?.click()}
-                className={`
-                  aspect-video border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors
-                  ${thumbnailFile 
-                    ? "border-accent bg-accent/5" 
-                    : "border-border hover:border-muted-foreground"
-                  }
-                `}
-              >
-                {thumbnailFile ? (
-                  <div className="relative w-full h-full">
-                    <img
-                      src={URL.createObjectURL(thumbnailFile)}
-                      alt="Thumbnail preview"
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="icon"
-                      className="absolute top-2 right-2"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setThumbnailFile(null)
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center p-4">
-                    <Image className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-xs text-muted-foreground">Drop or click to upload</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Film Stills */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Image className="h-5 w-5 text-accent" />
-                Film Stills
-              </CardTitle>
-              <CardDescription>Additional images from the film</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <input
-                ref={stillsInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || [])
-                  setStillFiles(prev => [...prev, ...files])
-                }}
-              />
-              <div
-                onDrop={handleStillsDrop}
-                onDragOver={(e) => e.preventDefault()}
-                className="space-y-3"
-              >
-                {stillFiles.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {stillFiles.map((file, index) => (
-                      <div key={index} className="relative aspect-video">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Still ${index + 1}`}
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeStill(index)}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center text-xs"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+      {/* Film file drop zone */}
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Film file <span className="text-[var(--almanac-red)]">*</span>
+        </header>
+        <div className="p-4">
+          <input
+            ref={filmInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => setFilmFile(e.target.files?.[0] ?? null)}
+          />
+          <div
+            onDrop={handleFilmDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => filmInputRef.current?.click()}
+            className={`flex cursor-pointer flex-col items-center justify-center border-2 border-dashed px-6 py-10 text-center transition-colors ${
+              filmFile
+                ? "border-[var(--almanac-blue)] bg-[var(--almanac-blue)]/5"
+                : "border-[var(--almanac-border)] hover:border-[var(--almanac-ink)]"
+            }`}
+          >
+            {filmFile ? (
+              <div>
+                <p className="font-bold">{filmFile.name}</p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]">
+                  {(filmFile.size / (1024 * 1024)).toFixed(2)} MB
+                </p>
                 <button
                   type="button"
-                  onClick={() => stillsInputRef.current?.click()}
-                  className="w-full aspect-video border-2 border-dashed border-border rounded-lg flex items-center justify-center hover:border-muted-foreground transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setFilmFile(null) }}
+                  className="mt-3 text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-red)] hover:underline"
                 >
-                  <div className="text-center">
-                    <Plus className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                    <p className="text-xs text-muted-foreground">Add stills</p>
-                  </div>
+                  Remove
                 </button>
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <div>
+                <p className="text-sm text-[var(--almanac-ink-mid)]">
+                  Drag and drop your film file, or click to browse
+                </p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]">
+                  MP4, MOV, WebM
+                </p>
+              </div>
+            )}
+          </div>
         </div>
+      </section>
 
-        {/* Metadata */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Metadata</CardTitle>
-            <CardDescription>Film information and details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="title" className="text-sm font-medium text-foreground">
-                  Title <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  id="title"
-                  value={metadata.title}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Film title"
-                  required
-                  className="bg-secondary border-border"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="year" className="text-sm font-medium text-foreground">
-                    Year
-                  </label>
-                  <Input
-                    id="year"
-                    value={metadata.year}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, year: e.target.value }))}
-                    placeholder="2024"
-                    className="bg-secondary border-border"
+      {/* Thumbnail & Stills */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <section className="border-2 border-[var(--almanac-ink)]">
+          <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+            Thumbnail
+          </header>
+          <div className="p-4">
+            <input
+              ref={thumbInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
+            />
+            <div
+              onDrop={handleThumbDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => thumbInputRef.current?.click()}
+              className={`flex cursor-pointer items-center justify-center border-2 border-dashed transition-colors ${
+                thumbnailFile
+                  ? "border-[var(--almanac-blue)]"
+                  : "border-[var(--almanac-border)] hover:border-[var(--almanac-ink)]"
+              }`}
+              style={{ aspectRatio: "16/9" }}
+            >
+              {thumbnailFile ? (
+                <div className="relative h-full w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={URL.createObjectURL(thumbnailFile)}
+                    alt="Thumbnail preview"
+                    className="h-full w-full object-cover"
                   />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="duration" className="text-sm font-medium text-foreground">
-                    Duration
-                  </label>
-                  <Input
-                    id="duration"
-                    value={metadata.duration}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, duration: e.target.value }))}
-                    placeholder="12:34"
-                    className="bg-secondary border-border"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium text-foreground">
-                Description
-              </label>
-              <textarea
-                id="description"
-                value={metadata.description}
-                onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description of the film..."
-                rows={4}
-                className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="director" className="text-sm font-medium text-foreground">
-                Director
-              </label>
-              <Input
-                id="director"
-                value={metadata.director}
-                onChange={(e) => setMetadata(prev => ({ ...prev, director: e.target.value }))}
-                placeholder="Director's name"
-                className="bg-secondary border-border"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Collections */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Collections</CardTitle>
-            <CardDescription>Add this film to one or more collections</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {collections.map((collection) => {
-                const isSelected = selectedCollections.includes(collection.id)
-                return (
                   <button
-                    key={collection.id}
                     type="button"
-                    onClick={() => toggleCollection(collection.id)}
-                    className={`
-                      px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2
-                      ${isSelected 
-                        ? "bg-accent text-accent-foreground" 
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
-                      }
-                    `}
+                    onClick={(e) => { e.stopPropagation(); setThumbnailFile(null) }}
+                    className="absolute right-2 top-2 border border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-2 py-1 text-[11px] font-bold uppercase tracking-[0.1em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
                   >
-                    {isSelected && <Check className="h-4 w-4" />}
-                    {collection.label}
+                    Remove
                   </button>
-                )
-              })}
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--almanac-ink-light)]">
+                  Drop or click to upload cover image
+                </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Upload Progress */}
-        {isUploading && (
-          <Card className="bg-card border-border">
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">{uploadPhase}</span>
-                  <span className="text-muted-foreground">{uploadProgress}%</span>
+        <section className="border-2 border-[var(--almanac-ink)]">
+          <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+            Film Stills
+          </header>
+          <div className="p-4">
+            <input
+              ref={stillsInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? [])
+                setStillFiles((prev) => [...prev, ...files])
+              }}
+            />
+            <div onDrop={handleStillsDrop} onDragOver={(e) => e.preventDefault()} className="space-y-2">
+              {stillFiles.length > 0 && (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {stillFiles.map((file, index) => (
+                    <div key={index} className="relative aspect-video">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Still ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeStill(index)}
+                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-[var(--almanac-red)] text-[10px] text-[var(--almanac-parchment)]"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-accent transition-all duration-200"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )}
+              <button
+                type="button"
+                onClick={() => stillsInputRef.current?.click()}
+                className="flex w-full items-center justify-center border-2 border-dashed border-[var(--almanac-border)] py-4 text-xs text-[var(--almanac-ink-light)] hover:border-[var(--almanac-ink)]"
+                style={stillFiles.length === 0 ? { aspectRatio: "16/9" } : undefined}
+              >
+                + Add stills
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
 
-        {/* Submit */}
-        <div className="flex items-center justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!filmFile || !metadata.title || isUploading}
-            onClick={(e) => handleSubmit(e as unknown as React.FormEvent, false)}
-          >
-            Save as Draft
-          </Button>
-          <Button
-            type="button"
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-            disabled={!filmFile || !metadata.title || isUploading}
-            onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
-          >
-            {isUploading ? "Uploading..." : "Publish Film"}
-          </Button>
+      {/* Metadata */}
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Metadata
+        </header>
+        <div className="grid gap-5 p-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Title <span className="text-[var(--almanac-red)]">*</span>
+            </label>
+            <input
+              type="text"
+              value={metadata.title}
+              onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
+              placeholder="Film title"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Year</label>
+            <input
+              type="text"
+              value={metadata.year}
+              onChange={(e) => setMetadata((p) => ({ ...p, year: e.target.value }))}
+              placeholder="2024"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Duration (mm:ss)
+            </label>
+            <input
+              type="text"
+              value={metadata.duration}
+              onChange={(e) => setMetadata((p) => ({ ...p, duration: e.target.value }))}
+              placeholder="12:34"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Genre</label>
+            <input
+              type="text"
+              value={metadata.genre}
+              onChange={(e) => setMetadata((p) => ({ ...p, genre: e.target.value }))}
+              placeholder="Documentary, Short, Experimental…"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Director
+            </label>
+            <input
+              type="text"
+              value={metadata.director}
+              onChange={(e) => setMetadata((p) => ({ ...p, director: e.target.value }))}
+              placeholder="Director's name"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Description
+            </label>
+            <textarea
+              rows={4}
+              value={metadata.description}
+              onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Brief description of the film…"
+              className={`${inputCls} resize-none`}
+            />
+          </div>
         </div>
-      </form>
+      </section>
+
+      {/* Credits */}
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Credits <span className="normal-case text-[var(--almanac-border)]">(optional)</span>
+        </header>
+        <div className="grid gap-5 p-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Cinematography
+            </label>
+            <input
+              type="text"
+              value={metadata.cinematography}
+              onChange={(e) => setMetadata((p) => ({ ...p, cinematography: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Editor</label>
+            <input
+              type="text"
+              value={metadata.editor}
+              onChange={(e) => setMetadata((p) => ({ ...p, editor: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Sound</label>
+            <input
+              type="text"
+              value={metadata.sound}
+              onChange={(e) => setMetadata((p) => ({ ...p, sound: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Music</label>
+            <input
+              type="text"
+              value={metadata.music}
+              onChange={(e) => setMetadata((p) => ({ ...p, music: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Collections */}
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Collections
+        </header>
+        <div className="flex flex-wrap gap-px bg-[var(--almanac-ink)]">
+          {COLLECTIONS.map((col) => {
+            const active = selectedCollections.includes(col.id)
+            return (
+              <button
+                key={col.id}
+                type="button"
+                onClick={() => toggleCollection(col.id)}
+                className={`px-5 py-3 text-[11px] font-bold uppercase tracking-[0.16em] ${
+                  active ? "bg-[var(--almanac-blue)] text-[var(--almanac-parchment)]" : "bg-[var(--almanac-parchment)] hover:bg-[var(--almanac-parchment-alt)]"
+                }`}
+              >
+                {active ? "✓ " : ""}{col.label}
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Upload progress */}
+      {isUploading && (
+        <section className="border-2 border-[var(--almanac-ink)]">
+          <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+            {uploadPhase}
+          </header>
+          <div className="p-4">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)] mb-2">
+              <span>{uploadPhase}</span>
+              <span className="tabular-nums">{uploadProgress}%</span>
+            </div>
+            <div className="h-2 border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)]">
+              <div
+                className="h-full bg-[var(--almanac-blue)] transition-all duration-200"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Submit */}
+      <div className="flex items-center justify-end gap-3 border-t border-[var(--almanac-border)] pt-4">
+        <button
+          type="button"
+          disabled={!canSubmit}
+          onClick={() => handleSubmit(false)}
+          className="border border-[var(--almanac-border)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:border-[var(--almanac-ink)] disabled:opacity-40"
+        >
+          Save as draft
+        </button>
+        <button
+          type="button"
+          disabled={!canSubmit}
+          onClick={() => handleSubmit(true)}
+          className="border-2 border-[var(--almanac-ink)] px-6 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-40"
+        >
+          {isUploading ? "Uploading…" : "Publish film →"}
+        </button>
+      </div>
     </div>
   )
 }

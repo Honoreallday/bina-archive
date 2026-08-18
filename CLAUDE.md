@@ -71,3 +71,6 @@ Check these when relevant:
 
 - `.claude/docs/architectural_patterns.md` — monorepo layout, streaming pipeline, presigned upload flow, admin auth, CloudFront signing
 - `.claude/docs/development_roadmap.md` — recommended build order and rationale
+- `.claude/docs/page-inventory.md` — MVP → Almanac restyle tracker, page by page, with prototype-vs-real-page status
+- `.claude/docs/almanac-design-system.md` — the almanac design language spec (colors, type, component patterns) extracted from `app/examples/almanac/`
+- `.claude/docs/almanac-vs-mvp-functionality-audit.md` — page-by-page functionality gap analysis between the almanac prototypes and the current MVP pages they'll replace

@@ -3,32 +3,29 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Save, Trash2, Eye, Film, Image as ImageIcon, Check, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { authHeaders } from "@/lib/auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
-const allCollections = [
+const ALL_COLLECTIONS = [
   { id: "shorts", label: "Shorts" },
   { id: "installations", label: "Installations" },
   { id: "documentary", label: "Documentary" },
-  { id: "2020-2024", label: "2020-2024" },
+  { id: "2020-2024", label: "2020–2024" },
 ]
 
-function secondsToDuration(seconds: number | null): string {
-  if (!seconds) return ""
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-  return `${m}:${String(s).padStart(2, "0")}`
+function secsToDuration(s: number | null): string {
+  if (!s) return ""
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return h > 0
+    ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+    : `${m}:${String(sec).padStart(2, "0")}`
 }
 
-function parseDurationToSeconds(duration: string): number | null {
-  const parts = duration.trim().split(":").map(Number)
+function parseDuration(dur: string): number | null {
+  const parts = dur.trim().split(":").map(Number)
   if (parts.some(isNaN)) return null
   if (parts.length === 2) return parts[0] * 60 + parts[1]
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
@@ -41,7 +38,7 @@ export default function EditFilmPage() {
   const filmId = params.id as string
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [loadError, setLoadError] = useState("")
   const [slug, setSlug] = useState("")
   const [metadata, setMetadata] = useState({
     title: "",
@@ -49,14 +46,20 @@ export default function EditFilmPage() {
     duration: "",
     description: "",
     director: "",
+    genre: "",
+    cinematography: "",
+    editor: "",
+    sound: "",
+    music: "",
   })
   const [published, setPublished] = useState(false)
   const [selectedCollections, setSelectedCollections] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    async function fetchFilm() {
+    async function load() {
       try {
         const res = await fetch(`${API_URL}/api/admin/films/${filmId}`, {
           headers: authHeaders(),
@@ -67,28 +70,30 @@ export default function EditFilmPage() {
         setMetadata({
           title: film.title ?? "",
           year: film.year ? String(film.year) : "",
-          duration: secondsToDuration(film.duration_seconds),
+          duration: secsToDuration(film.duration_seconds),
           description: film.description ?? "",
           director: film.director ?? "",
+          genre: film.genre ?? "",
+          cinematography: film.cinematography ?? "",
+          editor: film.editor ?? "",
+          sound: film.sound ?? "",
+          music: film.music ?? "",
         })
         setPublished(film.published ?? false)
         setSelectedCollections(Array.isArray(film.tags) ? film.tags : [])
       } catch {
-        setError("Failed to load film.")
+        setLoadError("Failed to load film.")
       } finally {
         setLoading(false)
       }
     }
-    fetchFilm()
+    load()
   }, [filmId])
 
-  const toggleCollection = (id: string) => {
-    setSelectedCollections(prev =>
-      prev.includes(id)
-        ? prev.filter(c => c !== id)
-        : [...prev, id]
+  const toggleCollection = (id: string) =>
+    setSelectedCollections((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     )
-  }
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -101,14 +106,20 @@ export default function EditFilmPage() {
           title: metadata.title,
           year: metadata.year ? Number(metadata.year) : null,
           director: metadata.director,
+          cinematography: metadata.cinematography || null,
+          editor: metadata.editor || null,
+          sound: metadata.sound || null,
+          music: metadata.music || null,
           description: metadata.description,
+          genre: metadata.genre || null,
           tags: selectedCollections.length > 0 ? selectedCollections : null,
-          duration_seconds: parseDurationToSeconds(metadata.duration),
+          duration_seconds: parseDuration(metadata.duration),
           published,
         }),
       })
       if (!res.ok) throw new Error("Save failed")
-      router.push("/admin/films")
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
     } catch {
       setSaveError("Failed to save changes.")
     } finally {
@@ -130,285 +141,292 @@ export default function EditFilmPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto py-12 text-center text-muted-foreground">
-        Loading...
-      </div>
-    )
-  }
+  const inputCls =
+    "w-full border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
 
-  if (error) {
+  if (loading)
     return (
-      <div className="max-w-4xl mx-auto py-12">
-        <div className="flex items-center gap-2 text-destructive">
-          <AlertCircle className="h-5 w-5" />
-          {error}
-        </div>
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--almanac-ink-light)]">Loading…</p>
       </div>
     )
-  }
+
+  if (loadError)
+    return (
+      <div className="border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)] px-4 py-3 text-sm text-[var(--almanac-ink-mid)]">
+        {loadError}
+      </div>
+    )
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--almanac-border)] pb-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/admin/films">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back to films</span>
-            </Link>
-          </Button>
+          <Link
+            href="/admin/films"
+            className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-ink)]"
+          >
+            ← Films
+          </Link>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Edit Film</h1>
-            <p className="text-muted-foreground text-sm">
-              ID: {filmId}
-            </p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">ID {filmId}</p>
+            <h1 className="mt-0.5 text-xl font-bold tracking-tight">Edit Film</h1>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {slug && (
-            <Button variant="outline" asChild>
-              <Link href={`/films/${slug}`} target="_blank">
-                <Eye className="h-4 w-4" />
-                Preview
-              </Link>
-            </Button>
+            <Link
+              href={`/films/${slug}`}
+              target="_blank"
+              className="border border-[var(--almanac-border)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] hover:border-[var(--almanac-ink)]"
+            >
+              Preview →
+            </Link>
           )}
-          <Button
+          <button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
+            className="border-2 border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-40"
           >
-            <Save className="h-4 w-4" />
-            {isSaving ? "Saving..." : "Save Changes"}
-          </Button>
+            {isSaving ? "Saving…" : saved ? "Saved ✓" : "Save changes →"}
+          </button>
         </div>
       </div>
 
       {saveError && (
-        <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+        <div className="border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)] px-3 py-2 text-xs text-[var(--almanac-ink-mid)]">
           {saveError}
         </div>
       )}
 
-      {/* Status Toggle */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Publication Status</CardTitle>
-          <CardDescription>Control the visibility of this film</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setPublished(false)}
-              className={`
-                px-4 py-2 rounded-md text-sm font-medium transition-colors
-                ${!published
-                  ? "bg-secondary text-foreground ring-2 ring-muted-foreground"
-                  : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-                }
-              `}
-            >
-              Draft
-            </button>
-            <button
-              onClick={() => setPublished(true)}
-              className={`
-                px-4 py-2 rounded-md text-sm font-medium transition-colors
-                ${published
-                  ? "bg-accent text-accent-foreground ring-2 ring-accent"
-                  : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-                }
-              `}
-            >
-              Published
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Publication status */}
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Publication status
+        </header>
+        <div className="flex gap-0 border-t-0 p-4">
+          <button
+            onClick={() => setPublished(false)}
+            className={`border-2 border-r border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] ${
+              !published ? "bg-[var(--almanac-ink)] text-[var(--almanac-parchment)]" : "hover:bg-[var(--almanac-parchment-alt)]"
+            }`}
+          >
+            Draft
+          </button>
+          <button
+            onClick={() => setPublished(true)}
+            className={`border-2 border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] ${
+              published
+                ? "bg-[var(--almanac-blue)] text-[var(--almanac-parchment)]"
+                : "hover:bg-[var(--almanac-parchment-alt)]"
+            }`}
+          >
+            Published
+          </button>
+        </div>
+      </section>
 
       {/* Media */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Film File */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Film className="h-5 w-5 text-accent" />
-              Film File
-            </CardTitle>
-            <CardDescription>Current video file</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <Film className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">film-{filmId}.mp4</p>
-                <Button variant="outline" size="sm" className="mt-3">
-                  Replace File
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <section className="border-2 border-[var(--almanac-ink)]">
+          <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+            Film File
+          </header>
+          <div className="flex aspect-video flex-col items-center justify-center gap-2 p-4 text-center">
+            <p className="text-xs text-[var(--almanac-ink-light)]">film-{filmId}.mp4</p>
+            <button
+              type="button"
+              className="border border-[var(--almanac-border)] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] hover:border-[var(--almanac-ink)]"
+            >
+              Replace file
+            </button>
+          </div>
+        </section>
 
-        {/* Thumbnail */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-accent" />
-              Thumbnail
-            </CardTitle>
-            <CardDescription>Cover image for the film</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No thumbnail</p>
-                <Button variant="outline" size="sm" className="mt-3">
-                  Upload Thumbnail
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <section className="border-2 border-[var(--almanac-ink)]">
+          <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+            Thumbnail
+          </header>
+          <div className="flex aspect-video flex-col items-center justify-center gap-2 p-4 text-center">
+            <p className="text-xs text-[var(--almanac-ink-light)]">No thumbnail</p>
+            <button
+              type="button"
+              className="border border-[var(--almanac-border)] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] hover:border-[var(--almanac-ink)]"
+            >
+              Upload thumbnail
+            </button>
+          </div>
+        </section>
       </div>
 
       {/* Metadata */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Metadata</CardTitle>
-          <CardDescription>Film information and details</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium text-foreground">
-                Title <span className="text-destructive">*</span>
-              </label>
-              <Input
-                id="title"
-                value={metadata.title}
-                onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Film title"
-                required
-                className="bg-secondary border-border"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="year" className="text-sm font-medium text-foreground">
-                  Year
-                </label>
-                <Input
-                  id="year"
-                  value={metadata.year}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, year: e.target.value }))}
-                  placeholder="2024"
-                  className="bg-secondary border-border"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="duration" className="text-sm font-medium text-foreground">
-                  Duration
-                </label>
-                <Input
-                  id="duration"
-                  value={metadata.duration}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, duration: e.target.value }))}
-                  placeholder="12:34"
-                  className="bg-secondary border-border"
-                />
-              </div>
-            </div>
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Metadata
+        </header>
+        <div className="grid gap-5 p-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Title <span className="text-[var(--almanac-red)]">*</span>
+            </label>
+            <input
+              type="text"
+              value={metadata.title}
+              onChange={(e) => setMetadata((p) => ({ ...p, title: e.target.value }))}
+              placeholder="Film title"
+              className={inputCls}
+            />
           </div>
-          <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-medium text-foreground">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Year</label>
+            <input
+              type="text"
+              value={metadata.year}
+              onChange={(e) => setMetadata((p) => ({ ...p, year: e.target.value }))}
+              placeholder="2024"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Duration (mm:ss)
+            </label>
+            <input
+              type="text"
+              value={metadata.duration}
+              onChange={(e) => setMetadata((p) => ({ ...p, duration: e.target.value }))}
+              placeholder="12:34"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Genre</label>
+            <input
+              type="text"
+              value={metadata.genre}
+              onChange={(e) => setMetadata((p) => ({ ...p, genre: e.target.value }))}
+              placeholder="Documentary, Short, Experimental…"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Director
+            </label>
+            <input
+              type="text"
+              value={metadata.director}
+              onChange={(e) => setMetadata((p) => ({ ...p, director: e.target.value }))}
+              placeholder="Director's name"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
               Description
             </label>
             <textarea
-              id="description"
-              value={metadata.description}
-              onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Brief description of the film..."
               rows={4}
-              className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+              value={metadata.description}
+              onChange={(e) => setMetadata((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Brief description of the film…"
+              className={`${inputCls} resize-none`}
             />
           </div>
-          <div className="space-y-2">
-            <label htmlFor="director" className="text-sm font-medium text-foreground">
-              Director
+        </div>
+      </section>
+
+      {/* Credits */}
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Credits <span className="normal-case text-[var(--almanac-border)]">(optional)</span>
+        </header>
+        <div className="grid gap-5 p-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Cinematography
             </label>
-            <Input
-              id="director"
-              value={metadata.director}
-              onChange={(e) => setMetadata(prev => ({ ...prev, director: e.target.value }))}
-              placeholder="Director's name"
-              className="bg-secondary border-border"
+            <input
+              type="text"
+              value={metadata.cinematography}
+              onChange={(e) => setMetadata((p) => ({ ...p, cinematography: e.target.value }))}
+              className={inputCls}
             />
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Editor</label>
+            <input
+              type="text"
+              value={metadata.editor}
+              onChange={(e) => setMetadata((p) => ({ ...p, editor: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Sound</label>
+            <input
+              type="text"
+              value={metadata.sound}
+              onChange={(e) => setMetadata((p) => ({ ...p, sound: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">Music</label>
+            <input
+              type="text"
+              value={metadata.music}
+              onChange={(e) => setMetadata((p) => ({ ...p, music: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+        </div>
+      </section>
 
       {/* Collections */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Collections</CardTitle>
-          <CardDescription>Assign this film to collections</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {allCollections.map((collection) => {
-              const isSelected = selectedCollections.includes(collection.id)
-              return (
-                <button
-                  key={collection.id}
-                  type="button"
-                  onClick={() => toggleCollection(collection.id)}
-                  className={`
-                    px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2
-                    ${isSelected
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-secondary text-foreground hover:bg-secondary/80"
-                    }
-                  `}
-                >
-                  {isSelected && <Check className="h-4 w-4" />}
-                  {collection.label}
-                </button>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Collections
+        </header>
+        <div className="flex flex-wrap gap-px bg-[var(--almanac-ink)] border-t-0">
+          {ALL_COLLECTIONS.map((col) => {
+            const active = selectedCollections.includes(col.id)
+            return (
+              <button
+                key={col.id}
+                type="button"
+                onClick={() => toggleCollection(col.id)}
+                className={`px-5 py-3 text-[11px] font-bold uppercase tracking-[0.16em] ${
+                  active ? "bg-[var(--almanac-blue)] text-[var(--almanac-parchment)]" : "bg-[var(--almanac-parchment)] hover:bg-[var(--almanac-parchment-alt)]"
+                }`}
+              >
+                {active ? "✓ " : ""}{col.label}
+              </button>
+            )
+          })}
+        </div>
+      </section>
 
-      {/* Danger Zone */}
-      <Card className="bg-card border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>
-          <CardDescription>Irreversible actions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-foreground">Delete this film</p>
-              <p className="text-sm text-muted-foreground">
-                Once deleted, this film cannot be recovered.
-              </p>
-            </div>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Film
-            </Button>
+      {/* Danger zone */}
+      <section className="border-2 border-[var(--almanac-red)]">
+        <header className="border-b border-[var(--almanac-red)] bg-[var(--almanac-red)]/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-red)]">
+          Danger zone
+        </header>
+        <div className="flex items-center justify-between p-4">
+          <div>
+            <p className="text-sm font-bold">Delete this film</p>
+            <p className="mt-0.5 text-xs text-[var(--almanac-ink-light)]">
+              Once deleted, this film cannot be recovered.
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <button
+            onClick={handleDelete}
+            className="border-2 border-[var(--almanac-red)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--almanac-red)] hover:bg-[var(--almanac-red)] hover:text-[var(--almanac-parchment)]"
+          >
+            Delete film
+          </button>
+        </div>
+      </section>
     </div>
   )
 }

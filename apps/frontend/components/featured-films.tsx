@@ -1,98 +1,60 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Play } from "lucide-react"
-
-const featuredFilms = [
-  {
-    id: 1,
-    title: "Dissolving Boundaries",
-    year: 2023,
-    duration: "24 min",
-    category: "Documentary",
-    image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925&auto=format&fit=crop",
-    slug: "dissolving-boundaries",
-  },
-  {
-    id: 2,
-    title: "The Weight of Light",
-    year: 2022,
-    duration: "12 min",
-    category: "Experimental",
-    image: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?q=80&w=2070&auto=format&fit=crop",
-    slug: "weight-of-light",
-  },
-  {
-    id: 3,
-    title: "Echoes in the Frame",
-    year: 2021,
-    duration: "18 min",
-    category: "Short",
-    image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2070&auto=format&fit=crop",
-    slug: "echoes-in-the-frame",
-  },
-]
+import { getFeaturedFilms, getPublishedFilms } from "@/lib/films-data"
 
 export function FeaturedFilms() {
-  return (
-    <section className="px-6 lg:px-8 py-24 border-t border-border">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-end justify-between mb-12">
-          <div>
-            <p className="text-accent text-sm tracking-widest uppercase mb-2">Now Streaming</p>
-            <h2 className="text-3xl md:text-4xl font-light tracking-tight text-foreground">
-              Featured Works
-            </h2>
-          </div>
-          <Link 
-            href="/films" 
-            className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            View all films
-          </Link>
-        </div>
+  const featured = getFeaturedFilms()
+  const films = getPublishedFilms()
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredFilms.map((film) => (
-            <Link
-              key={film.id}
-              href={`/films/${film.slug}`}
-              className="group block"
-            >
-              <div className="relative aspect-video overflow-hidden bg-secondary mb-4">
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-14 md:px-10">
+      <div className="mb-5 flex items-end justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
+            Plates of note
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight">Featured</h2>
+        </div>
+        <Link
+          href="/films"
+          className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-ink)]"
+        >
+          All {films.length} films →
+        </Link>
+      </div>
+
+      <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
+        <div className="grid gap-px sm:grid-cols-3">
+          {featured.map((film, i) => (
+            <article key={film.id} className="group flex flex-col bg-[var(--almanac-parchment)]">
+              <div className="relative aspect-[4/3] overflow-hidden border-b border-[var(--almanac-ink)]">
                 <Image
                   src={film.image}
                   alt={film.title}
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
                 />
-                <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-full bg-foreground/90 flex items-center justify-center">
-                    <Play className="h-6 w-6 text-background ml-1" fill="currentColor" />
-                  </div>
-                </div>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{film.category}</span>
-                  <span className="text-border">|</span>
-                  <span>{film.duration}</span>
-                </div>
-                <h3 className="text-lg font-medium text-foreground group-hover:text-accent transition-colors">
-                  {film.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">{film.year}</p>
+              <div className="flex flex-1 flex-col p-4">
+                <span className="text-[11px] tabular-nums text-[var(--almanac-ink-light)] opacity-70">
+                  {String(i + 1).padStart(3, "0")}
+                </span>
+                <h3 className="mt-1 text-sm font-bold leading-tight">{film.title}</h3>
+                <p className="mt-1 font-[family-name:var(--font-almanac-script)] text-base text-[var(--almanac-blue)]">
+                  {film.year} · {film.duration}
+                </p>
+                <p className="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-[var(--almanac-ink-mid)]">
+                  {film.description}
+                </p>
+                <Link
+                  href={`/films/${film.slug}`}
+                  className="mt-3 border-t border-[var(--almanac-border)] pt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-blue)]"
+                >
+                  Open record →
+                </Link>
               </div>
-            </Link>
+            </article>
           ))}
-        </div>
-
-        <div className="mt-8 sm:hidden">
-          <Link 
-            href="/films" 
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            View all films
-          </Link>
         </div>
       </div>
     </section>

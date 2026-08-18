@@ -1,17 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { Save } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [settings, setSettings] = useState({
-    siteName: "Archive",
-    siteDescription: "A digital archive of films by the artist",
-    contactEmail: "contact@archive.com",
+    siteName: "Dream Chambers Public Access",
+    siteDescription:
+      "An archive and non-exclusive distributor for Black Minnesotan and Midwestern experimental film.",
+    contactEmail: "dreamchambers@proton.me",
     socialInstagram: "",
     socialVimeo: "",
     socialTwitter: "",
@@ -19,134 +17,96 @@ export default function AdminSettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((r) => setTimeout(r, 800))
     setIsSaving(false)
-    alert("Settings saved successfully!")
+    setSaved(true)
+    setTimeout(() => setSaved(false), 3000)
   }
 
+  const field = (
+    id: keyof typeof settings,
+    label: string,
+    type = "text",
+    placeholder = ""
+  ) => (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={settings[id]}
+        onChange={(e) => setSettings((prev) => ({ ...prev, [id]: e.target.value }))}
+        placeholder={placeholder}
+        className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
+      />
+    </div>
+  )
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Configure your archive settings
-          </p>
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          <Save className="h-4 w-4" />
-          {isSaving ? "Saving..." : "Save Changes"}
-        </Button>
+    <div className="max-w-lg space-y-8">
+      <div className="border-b border-[var(--almanac-border)] pb-4">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">Configuration</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">Settings</h1>
       </div>
 
-      {/* General Settings */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">General</CardTitle>
-          <CardDescription>Basic site information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="siteName" className="text-sm font-medium text-foreground">
-              Site Name
-            </label>
-            <Input
-              id="siteName"
-              value={settings.siteName}
-              onChange={(e) => setSettings(prev => ({ ...prev, siteName: e.target.value }))}
-              placeholder="Archive"
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="siteDescription" className="text-sm font-medium text-foreground">
-              Site Description
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          General
+        </header>
+        <div className="flex flex-col gap-5 p-5">
+          {field("siteName", "Site name")}
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="siteDescription"
+              className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]"
+            >
+              Site description
             </label>
             <textarea
               id="siteDescription"
-              value={settings.siteDescription}
-              onChange={(e) => setSettings(prev => ({ ...prev, siteDescription: e.target.value }))}
-              placeholder="A digital archive of films..."
               rows={3}
-              className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+              value={settings.siteDescription}
+              onChange={(e) => setSettings((prev) => ({ ...prev, siteDescription: e.target.value }))}
+              className="resize-none border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Contact Settings */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Contact</CardTitle>
-          <CardDescription>Contact information for inquiries</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="contactEmail" className="text-sm font-medium text-foreground">
-              Contact Email
-            </label>
-            <Input
-              id="contactEmail"
-              type="email"
-              value={settings.contactEmail}
-              onChange={(e) => setSettings(prev => ({ ...prev, contactEmail: e.target.value }))}
-              placeholder="contact@archive.com"
-              className="bg-secondary border-border"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Contact
+        </header>
+        <div className="flex flex-col gap-5 p-5">
+          {field("contactEmail", "Contact email", "email", "dreamchambers@proton.me")}
+        </div>
+      </section>
 
-      {/* Social Links */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Social Links</CardTitle>
-          <CardDescription>Connect your social profiles</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="instagram" className="text-sm font-medium text-foreground">
-              Instagram
-            </label>
-            <Input
-              id="instagram"
-              value={settings.socialInstagram}
-              onChange={(e) => setSettings(prev => ({ ...prev, socialInstagram: e.target.value }))}
-              placeholder="https://instagram.com/username"
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="vimeo" className="text-sm font-medium text-foreground">
-              Vimeo
-            </label>
-            <Input
-              id="vimeo"
-              value={settings.socialVimeo}
-              onChange={(e) => setSettings(prev => ({ ...prev, socialVimeo: e.target.value }))}
-              placeholder="https://vimeo.com/username"
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="twitter" className="text-sm font-medium text-foreground">
-              Twitter / X
-            </label>
-            <Input
-              id="twitter"
-              value={settings.socialTwitter}
-              onChange={(e) => setSettings(prev => ({ ...prev, socialTwitter: e.target.value }))}
-              placeholder="https://twitter.com/username"
-              className="bg-secondary border-border"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <section className="border-2 border-[var(--almanac-ink)]">
+        <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+          Social links
+        </header>
+        <div className="flex flex-col gap-5 p-5">
+          {field("socialInstagram", "Instagram", "url", "https://instagram.com/…")}
+          {field("socialVimeo", "Vimeo", "url", "https://vimeo.com/…")}
+          {field("socialTwitter", "Twitter / X", "url", "https://twitter.com/…")}
+        </div>
+      </section>
+
+      <div className="flex items-center justify-between">
+        {saved && (
+          <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-blue)]">Settings saved.</p>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="ml-auto border-2 border-[var(--almanac-ink)] px-6 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-40"
+        >
+          {isSaving ? "Saving…" : "Save changes →"}
+        </button>
+      </div>
     </div>
   )
 }

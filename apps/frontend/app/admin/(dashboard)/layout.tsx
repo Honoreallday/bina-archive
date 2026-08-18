@@ -3,15 +3,13 @@
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { Film, LayoutDashboard, Upload, FileVideo, Settings, LogOut, Menu, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { getToken, clearToken } from "@/lib/auth"
 
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/upload", label: "Upload", icon: Upload },
-  { href: "/admin/films", label: "Films", icon: FileVideo },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin", label: "Dashboard", exact: true },
+  { href: "/admin/upload", label: "Upload" },
+  { href: "/admin/films", label: "Films" },
+  { href: "/admin/settings", label: "Settings" },
 ]
 
 export default function AdminDashboardLayout({
@@ -22,7 +20,7 @@ export default function AdminDashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!getToken()) {
@@ -39,111 +37,98 @@ export default function AdminDashboardLayout({
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)]">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--almanac-ink-light)]">
+          Verifying credentials…
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Mobile sidebar overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
+    <div className="flex min-h-screen bg-[var(--almanac-ink)] font-[family-name:var(--font-almanac-mono)]">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-[var(--almanac-ink)]/60 md:hidden"
         />
       )}
 
+      {/* Mobile menu toggle */}
+      <button
+        type="button"
+        onClick={() => setSidebarOpen(true)}
+        aria-label="Open admin menu"
+        className="fixed left-3 top-3 z-30 border-2 border-[var(--almanac-parchment)] bg-[var(--almanac-ink)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--almanac-parchment)] md:hidden"
+      >
+        Menu ≡
+      </button>
+
       {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border
-        transform transition-transform duration-200 ease-in-out
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}>
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-border">
-            <Link href="/admin" className="flex items-center gap-2 text-foreground">
-              <Film className="h-5 w-5 text-accent" />
-              <span className="font-medium">Archive Admin</span>
-            </Link>
-            <button
-              onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close sidebar</span>
-            </button>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-52 shrink-0 flex-col border-r border-[var(--almanac-ink-mid)] bg-[var(--almanac-ink)] transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--almanac-ink-mid)] px-4 py-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+              Dream Chambers Public Access
+            </p>
+            <p className="mt-0.5 text-sm font-bold text-[var(--almanac-parchment)]">Admin</p>
           </div>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close admin menu"
+            className="text-[var(--almanac-ink-light)] hover:text-[var(--almanac-parchment)] md:hidden"
+          >
+            ×
+          </button>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={`
-                    flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                    ${isActive 
-                      ? "bg-accent text-accent-foreground" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                    }
-                  `}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
+        <nav className="flex-1">
+          {navItems.map((item) => {
+            const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-2 border-b border-[var(--almanac-ink-mid)] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors ${
+                  isActive
+                    ? "bg-[var(--almanac-parchment)] text-[var(--almanac-ink)]"
+                    : "text-[var(--almanac-border)] hover:bg-[var(--almanac-blue)] hover:text-[var(--almanac-parchment)]"
+                }`}
+              >
+                {isActive && <span className="text-[var(--almanac-blue)]">→</span>}
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-border">
-            <Link
-              href="/"
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mb-1"
-            >
-              <Film className="h-4 w-4" />
-              View Site
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
-          </div>
+        <div className="border-t border-[var(--almanac-ink-mid)]">
+          <Link
+            href="/"
+            className="flex items-center border-b border-[var(--almanac-ink-mid)] px-4 py-3 text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-parchment)]"
+          >
+            ← View site
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center px-4 py-3 text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-red)]"
+          >
+            Sign out
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="h-16 border-b border-border flex items-center justify-between px-6">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden text-muted-foreground hover:text-foreground"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Open sidebar</span>
-          </button>
-          <div className="hidden lg:block" />
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Admin</span>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 p-6 overflow-auto">
-          {children}
-        </main>
-      </div>
+      {/* Content area */}
+      <main className="min-w-0 flex-1 bg-[var(--almanac-parchment)] p-6 pt-16 text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)] md:pt-6">
+        {children}
+      </main>
     </div>
   )
 }

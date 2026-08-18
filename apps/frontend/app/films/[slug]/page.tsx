@@ -4,14 +4,6 @@ import { use, useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
-import {
-  Play,
-  ArrowLeft,
-  Clock,
-  Calendar,
-  Film,
-  Share2,
-} from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import VideoPlayer from "@/components/VideoPlayer"
@@ -24,11 +16,16 @@ interface FilmDetail {
   slug: string
   year: number
   director: string
+  cinematography: string | null
+  editor: string | null
+  sound: string | null
+  music: string | null
   description: string
   genre: string
   tags: string[] | null
   duration_seconds: number
   thumbnail_url: string | null
+  stills: string[] | null
   hls_url: string | null
   created_at: string
 }
@@ -51,6 +48,7 @@ export default function FilmPage({ params }: FilmPageProps) {
   const [relatedFilms, setRelatedFilms] = useState<FilmDetail[]>([])
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -82,9 +80,13 @@ export default function FilmPage({ params }: FilmPageProps) {
     if (navigator.share) {
       try {
         await navigator.share({ title: film.title, text: film.description, url: window.location.href })
-      } catch { /* cancelled */ }
+      } catch {
+        /* cancelled */
+      }
     } else {
       navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -92,162 +94,167 @@ export default function FilmPage({ params }: FilmPageProps) {
 
   if (loading || !film) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)]">
         <Header />
-        <main className="pt-16 flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Loading...</p>
+        <main className="flex min-h-[60vh] items-center justify-center">
+          <p className="text-sm text-[var(--almanac-ink-light)]">Loading…</p>
         </main>
         <Footer />
       </div>
     )
   }
 
+  const creditRows: [string, string][] = [
+    ["Director", film.director],
+    ...(film.cinematography ? ([["Cinematography", film.cinematography]] as [string, string][]) : []),
+    ...(film.editor ? ([["Editor", film.editor]] as [string, string][]) : []),
+    ...(film.sound ? ([["Sound", film.sound]] as [string, string][]) : []),
+    ...(film.music ? ([["Music", film.music]] as [string, string][]) : []),
+    ["Year", String(film.year)],
+    ["Duration", formatDuration(film.duration_seconds)],
+    ["Genre", film.genre],
+  ]
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
       <Header />
 
-      <main className="pt-16">
-        {/* Video Player */}
-        <div className="bg-black">
-          <div className="max-w-7xl mx-auto">
+      <main>
+        {/* Video player — full-width, black */}
+        <div className="border-b-2 border-[var(--almanac-ink)] bg-black">
+          <div className="mx-auto max-w-6xl">
             <VideoPlayer hlsUrl={film.hls_url ?? ""} />
           </div>
         </div>
 
-        {/* Film Details */}
-        <div className="px-6 lg:px-8 py-12">
-          <div className="max-w-7xl mx-auto">
-            <Link
-              href="/films"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to all films
-            </Link>
+        <div className="mx-auto max-w-6xl px-6 py-10 md:px-10">
+          <Link
+            href="/films"
+            className="mb-8 inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-ink)]"
+          >
+            ← back to films
+          </Link>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              {/* Main content */}
-              <div className="lg:col-span-2 space-y-8">
-                <div>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                    <span className="text-accent">{film.genre}</span>
-                    <span className="text-border">|</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {formatDuration(film.duration_seconds)}
-                    </span>
-                    <span className="text-border">|</span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {film.year}
-                    </span>
-                  </div>
-                  <h1 className="text-3xl md:text-4xl font-light tracking-tight text-foreground mb-4">
-                    {film.title}
-                  </h1>
-                  <p className="text-lg text-muted-foreground leading-relaxed">
-                    {film.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* Sidebar */}
-              <div className="space-y-8">
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleShare}
-                    className="flex items-center gap-2 px-4 py-2 border border-border text-sm text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </button>
-                </div>
-
-                {/* Credits */}
-                <div className="border border-border p-6">
-                  <h2 className="text-sm tracking-widest uppercase text-accent mb-4">
-                    Credits
-                  </h2>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Director
-                      </dt>
-                      <dd className="text-foreground">{film.director}</dd>
-                    </div>
-                  </dl>
-                </div>
-
-                {/* Tags */}
-                {film.tags && film.tags.length > 0 && (
-                  <div>
-                    <h2 className="text-sm tracking-widest uppercase text-accent mb-4">
-                      Tags
-                    </h2>
-                    <div className="flex flex-wrap gap-2">
-                      {film.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border text-muted-foreground"
-                        >
-                          <Film className="h-3.5 w-3.5" />
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* Film header */}
+          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--almanac-border)] pb-6">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-red)]">{film.genre}</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{film.title}</h1>
+              <p className="mt-2 font-[family-name:var(--font-almanac-script)] text-2xl text-[var(--almanac-blue)]">
+                {film.year} · {formatDuration(film.duration_seconds)}
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="border-2 border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
+            >
+              {copied ? "Link copied ✓" : "Share →"}
+            </button>
+          </div>
 
-            {/* Related Films */}
-            {relatedFilms.length > 0 && (
-              <div className="mt-16 pt-16 border-t border-border">
-                <h2 className="text-sm tracking-widest uppercase text-accent mb-6">
-                  Related Films
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {relatedFilms.map((related) => (
-                    <Link
-                      key={related.id}
-                      href={`/films/${related.slug}`}
-                      className="group block"
+          {/* Two-column: synopsis + credits */}
+          <div className="mt-8 grid gap-10 md:grid-cols-[1.3fr_1fr]">
+            <section>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">Synopsis</p>
+              <p className="mt-4 text-sm leading-relaxed text-[var(--almanac-ink-mid)]">{film.description}</p>
+
+              {film.stills && film.stills.length > 0 && (
+                <div className="mt-8">
+                  <p className="mb-3 text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
+                    Stills
+                  </p>
+                  <div className="grid grid-cols-2 gap-px border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
+                    {film.stills.map((src, i) => (
+                      <div key={src} className="relative aspect-video">
+                        <Image
+                          src={src}
+                          alt={`Still ${i + 1}`}
+                          fill
+                          className="object-cover grayscale transition-all duration-700 hover:grayscale-0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Credits register + tags */}
+            <section>
+              <div className="border-2 border-[var(--almanac-ink)]">
+                <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+                  Film record
+                </header>
+                <dl>
+                  {creditRows.map(([label, value], i) => (
+                    <div
+                      key={label}
+                      className={`grid grid-cols-[130px_1fr] gap-3 px-3 py-2.5 text-xs ${
+                        i % 2 === 0 ? "bg-[var(--almanac-parchment)]" : "bg-[var(--almanac-parchment-alt)]"
+                      }`}
                     >
-                      <div className="relative aspect-video overflow-hidden bg-secondary mb-3">
-                        {related.thumbnail_url && (
+                      <dt className="uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]">{label}</dt>
+                      <dd className="font-bold">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
+              {film.tags && film.tags.length > 0 && (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {film.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="border border-[var(--almanac-border)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Related films */}
+          {relatedFilms.length > 0 && (
+            <section className="mt-12 border-t border-[var(--almanac-border)] pt-8">
+              <p className="mb-5 text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
+                Related — {film.genre}
+              </p>
+              <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
+                <div className="grid gap-px sm:grid-cols-3">
+                  {relatedFilms.map((r, i) => (
+                    <Link
+                      key={r.id}
+                      href={`/films/${r.slug}`}
+                      className="group flex flex-col bg-[var(--almanac-parchment)]"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden border-b border-[var(--almanac-ink)] bg-[var(--almanac-parchment-alt)]">
+                        {r.thumbnail_url && (
                           <Image
-                            src={related.thumbnail_url}
-                            alt={related.title}
+                            src={r.thumbnail_url}
+                            alt={r.title}
                             fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
                           />
                         )}
-                        <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="w-12 h-12 rounded-full bg-foreground/90 flex items-center justify-center">
-                            <Play
-                              className="h-5 w-5 text-background ml-0.5"
-                              fill="currentColor"
-                            />
-                          </div>
-                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{related.genre}</span>
-                          <span className="text-border">|</span>
-                          <span>{formatDuration(related.duration_seconds)}</span>
-                        </div>
-                        <h3 className="text-base font-medium text-foreground group-hover:text-accent transition-colors">
-                          {related.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{related.year}</p>
+                      <div className="p-3">
+                        <span className="text-[11px] tabular-nums text-[var(--almanac-ink-light)] opacity-70">
+                          {String(i + 1).padStart(3, "0")}
+                        </span>
+                        <h3 className="mt-1 text-sm font-bold leading-tight">{r.title}</h3>
+                        <p className="mt-0.5 font-[family-name:var(--font-almanac-script)] text-sm text-[var(--almanac-blue)]">
+                          {r.year} · {formatDuration(r.duration_seconds)}
+                        </p>
                       </div>
                     </Link>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
+            </section>
+          )}
         </div>
       </main>
 

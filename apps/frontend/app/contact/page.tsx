@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ArrowRight, Mail, MapPin, Send } from "lucide-react"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 const inquiryTypes = [
   { id: "screening", label: "Screening Request" },
@@ -16,17 +14,40 @@ const inquiryTypes = [
   { id: "general", label: "General Inquiry" },
 ]
 
+const archiveInfo: [string, string][] = [
+  ["Archive", "Dream Chambers Public Access"],
+  ["Region", "Minneapolis, Minnesota"],
+  ["Focus", "Black Minnesotan & Midwestern moving image, 1960s–present"],
+  ["Founded", "2019"],
+  ["Submissions", "Open — see criteria"],
+  ["Licensing", "Non-exclusive; artist retains all rights"],
+  ["Email", "dreamchambers@proton.me"],
+]
+
+const faqs = [
+  {
+    q: "How can I screen a film at my institution?",
+    a: "Submit a screening request with details about your venue, anticipated audience, and preferred dates. We will respond with availability and rental terms.",
+  },
+  {
+    q: "Are the films available for educational use?",
+    a: "Yes, many works are available for educational licensing. Institutional access can be arranged for universities and libraries.",
+  },
+  {
+    q: "Can I license footage for my project?",
+    a: "Licensing requests are considered on a case-by-case basis. Include details about your project, intended use, and distribution plans.",
+  },
+  {
+    q: "How do I access installation documentation?",
+    a: "Documentation for multi-channel installations is available upon request. Some pieces require in-person viewing and cannot be streamed.",
+  },
+]
+
 export default function ContactPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [formState, setFormState] = useState({
-    name: "",
-    email: "",
-    organization: "",
-    message: "",
-  })
+  const [formState, setFormState] = useState({ name: "", email: "", organization: "", message: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
-
   const [submitError, setSubmitError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,279 +56,224 @@ export default function ContactPage() {
     setSubmitError("")
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api/contact`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formState.name,
-            email: formState.email,
-            organization: formState.organization,
-            inquiryType: selectedType,
-            message: formState.message,
-          }),
-        }
-      )
+      const res = await fetch(`${API_URL}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formState.name,
+          email: formState.email,
+          organization: formState.organization,
+          inquiryType: selectedType,
+          message: formState.message,
+        }),
+      })
       if (!res.ok) throw new Error("Submission failed")
       setIsSubmitted(true)
     } catch {
-      setSubmitError("Something went wrong. Please try again or email us directly.")
+      setSubmitError("Something went wrong. Please try again or write to us directly.")
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const resetForm = () => {
+    setIsSubmitted(false)
+    setSelectedType(null)
+    setFormState({ name: "", email: "", organization: "", message: "" })
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
       <Header />
 
-      <main>
-        {/* Hero Section */}
-        <section className="px-6 lg:px-8 pt-32 pb-16">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-accent text-sm tracking-widest uppercase mb-6">
-              Contact
-            </p>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-foreground mb-8 text-balance">
-              Get in touch
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              For screening requests, licensing inquiries, press interviews, or
-              institutional access, please use the form below or reach out directly.
-            </p>
-          </div>
-        </section>
+      <main className="mx-auto max-w-6xl px-6 py-10 pb-16 md:px-10">
+        <div className="grid gap-10 md:grid-cols-[1fr_1.15fr]">
+          {/* Left — intro + archive info */}
+          <section>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">Contact</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Get in touch</h1>
 
-        {/* Contact Form Section */}
-        <section className="px-6 lg:px-8 py-16 border-t border-border">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
-              {/* Contact Info */}
-              <div className="lg:col-span-4 space-y-8">
-                <div>
-                  <h2 className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-4">
-                    Direct Contact
-                  </h2>
-                  <a
-                    href="mailto:archive@example.com"
-                    className="flex items-center gap-3 text-foreground hover:text-accent transition-colors"
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--almanac-ink-mid)]">
+              For screening requests, licensing inquiries, press interviews, or institutional
+              access, use the form or reach out directly. We&apos;re a small operation and do our
+              best to respond promptly.
+            </p>
+
+            <div className="mt-8 border-2 border-[var(--almanac-ink)]">
+              <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+                Contact information
+              </header>
+              <dl>
+                {archiveInfo.map(([label, value], i) => (
+                  <div
+                    key={label}
+                    className={`grid grid-cols-[130px_1fr] gap-3 px-3 py-2.5 text-xs ${
+                      i % 2 === 0 ? "bg-[var(--almanac-parchment)]" : "bg-[var(--almanac-parchment-alt)]"
+                    }`}
                   >
-                    <Mail className="h-4 w-4" />
-                    archive@example.com
-                  </a>
-                </div>
-
-                <div>
-                  <h2 className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-4">
-                    Location
-                  </h2>
-                  <div className="flex items-start gap-3 text-foreground">
-                    <MapPin className="h-4 w-4 mt-0.5" />
-                    <span>
-                      Chicago, IL<br />
-                      United States
-                    </span>
+                    <dt className="uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]">{label}</dt>
+                    <dd className="font-bold">{value}</dd>
                   </div>
-                </div>
+                ))}
+              </dl>
+            </div>
+          </section>
 
-                <div>
-                  <h2 className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-4">
-                    Response Time
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    We typically respond to inquiries within 3-5 business days.
-                    For urgent screening requests, please indicate the timeline in your message.
-                  </p>
-                </div>
+          {/* Right — form */}
+          <section className="border-2 border-[var(--almanac-ink)]">
+            <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+              Contact form
+            </header>
 
-                <div className="pt-4 border-t border-border">
-                  <h2 className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-4">
-                    Representation
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    For sales and distribution inquiries, the artist is represented by
-                    Example Distribution.
-                  </p>
-                </div>
+            {isSubmitted ? (
+              <div className="flex flex-col items-center gap-3 p-8 text-center">
+                <h2 className="text-xl font-bold tracking-tight">Message sent</h2>
+                <p className="max-w-xs text-sm leading-relaxed text-[var(--almanac-ink-mid)]">
+                  Thank you for reaching out. We&apos;ll get back to you as soon as we can.
+                </p>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="mt-3 border-2 border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
+                >
+                  Send another message →
+                </button>
               </div>
-
-              {/* Form */}
-              <div className="lg:col-span-8">
-                {isSubmitted ? (
-                  <div className="bg-secondary/50 border border-border p-8 text-center">
-                    <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
-                      <Send className="h-5 w-5 text-accent" />
-                    </div>
-                    <h3 className="text-xl font-medium text-foreground mb-2">
-                      Message sent
-                    </h3>
-                    <p className="text-muted-foreground mb-6">
-                      Thank you for your inquiry. We will respond within 3-5 business days.
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsSubmitted(false)
-                        setSelectedType(null)
-                        setFormState({ name: "", email: "", organization: "", message: "" })
-                      }}
-                    >
-                      Send another message
-                    </Button>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-5">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]">
+                    What is your inquiry about?
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {inquiryTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setSelectedType(type.id)}
+                        className={`border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${
+                          selectedType === type.id
+                            ? "border-[var(--almanac-ink)] bg-[var(--almanac-ink)] text-[var(--almanac-parchment)]"
+                            : "border-[var(--almanac-border)] text-[var(--almanac-ink-light)] hover:border-[var(--almanac-ink)] hover:text-[var(--almanac-ink)]"
+                        }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Inquiry Type */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-4">
-                        What is your inquiry about?
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {inquiryTypes.map((type) => (
-                          <button
-                            key={type.id}
-                            type="button"
-                            onClick={() => setSelectedType(type.id)}
-                            className={`px-4 py-2 text-sm border transition-colors ${
-                              selectedType === type.id
-                                ? "border-accent bg-accent/10 text-accent"
-                                : "border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            {type.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                </div>
 
-                    {/* Contact Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label
-                          htmlFor="name"
-                          className="block text-sm font-medium text-foreground mb-2"
-                        >
-                          Name
-                        </label>
-                        <Input
-                          id="name"
-                          type="text"
-                          required
-                          value={formState.name}
-                          onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                          className="bg-secondary border-border"
-                          placeholder="Your name"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="email"
-                          className="block text-sm font-medium text-foreground mb-2"
-                        >
-                          Email
-                        </label>
-                        <Input
-                          id="email"
-                          type="email"
-                          required
-                          value={formState.email}
-                          onChange={(e) => setFormState({ ...formState, email: e.target.value })}
-                          className="bg-secondary border-border"
-                          placeholder="your@email.com"
-                        />
-                      </div>
-                    </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="name"
+                    className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]"
+                  >
+                    Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    required
+                    value={formState.name}
+                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                    placeholder="Your name"
+                    className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm font-[family-name:var(--font-almanac-mono)] outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
+                  />
+                </div>
 
-                    <div>
-                      <label
-                        htmlFor="organization"
-                        className="block text-sm font-medium text-foreground mb-2"
-                      >
-                        Organization <span className="text-muted-foreground">(optional)</span>
-                      </label>
-                      <Input
-                        id="organization"
-                        type="text"
-                        value={formState.organization}
-                        onChange={(e) => setFormState({ ...formState, organization: e.target.value })}
-                        className="bg-secondary border-border"
-                        placeholder="Museum, university, publication, etc."
-                      />
-                    </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="email"
+                    className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={formState.email}
+                    onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+                    placeholder="your@email.address"
+                    className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm font-[family-name:var(--font-almanac-mono)] outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
+                  />
+                </div>
 
-                    <div>
-                      <label
-                        htmlFor="message"
-                        className="block text-sm font-medium text-foreground mb-2"
-                      >
-                        Message
-                      </label>
-                      <textarea
-                        id="message"
-                        required
-                        rows={6}
-                        value={formState.message}
-                        onChange={(e) => setFormState({ ...formState, message: e.target.value })}
-                        className="w-full px-3 py-2 bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background resize-none"
-                        placeholder="Please include details about your inquiry, including any relevant dates or timeline..."
-                      />
-                    </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="organization"
+                    className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]"
+                  >
+                    Organization <span className="normal-case text-[var(--almanac-border)]">(optional)</span>
+                  </label>
+                  <input
+                    id="organization"
+                    type="text"
+                    value={formState.organization}
+                    onChange={(e) => setFormState({ ...formState, organization: e.target.value })}
+                    placeholder="Museum, university, publication, etc."
+                    className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm font-[family-name:var(--font-almanac-mono)] outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
+                  />
+                </div>
 
-                    {submitError && (
-                      <p className="text-sm text-destructive">{submitError}</p>
-                    )}
-                    <div className="flex items-center justify-between pt-4">
-                      <p className="text-xs text-muted-foreground">
-                        All submissions are kept confidential.
-                      </p>
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting || !selectedType}
-                        className="gap-2"
-                      >
-                        {isSubmitting ? "Sending..." : "Send Message"}
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </form>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="message"
+                    className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]"
+                  >
+                    Message
+                  </label>
+                  <textarea
+                    id="message"
+                    rows={7}
+                    required
+                    value={formState.message}
+                    onChange={(e) => setFormState({ ...formState, message: e.target.value })}
+                    placeholder="Write your message here…"
+                    className="resize-none border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 text-sm font-[family-name:var(--font-almanac-mono)] outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
+                  />
+                </div>
+
+                {submitError && (
+                  <div className="border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)] px-3 py-2 text-xs text-[var(--almanac-ink-mid)]">
+                    {submitError}
+                  </div>
                 )}
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* FAQ Section */}
-        <section className="px-6 lg:px-8 py-16 border-t border-border bg-secondary/30">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-8">
-              Frequently Asked Questions
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[
-                {
-                  q: "How can I screen a film at my institution?",
-                  a: "Please submit a screening request with details about your venue, anticipated audience, and preferred dates. We will respond with availability and rental terms.",
-                },
-                {
-                  q: "Are the films available for educational use?",
-                  a: "Yes, many works are available for educational licensing. Institutional access can be arranged for universities and libraries.",
-                },
-                {
-                  q: "Can I license footage for my project?",
-                  a: "Licensing requests are considered on a case-by-case basis. Please include details about your project, intended use, and distribution plans.",
-                },
-                {
-                  q: "How do I access installation documentation?",
-                  a: "Documentation for multi-channel installations is available upon request. Some pieces require in-person viewing and cannot be streamed.",
-                },
-              ].map((item, index) => (
-                <div key={index}>
-                  <h3 className="text-foreground font-medium mb-2">{item.q}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+                <div className="flex items-center justify-between border-t border-[var(--almanac-border)] pt-4">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]">
+                    All submissions are confidential
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !selectedType}
+                    className="border-2 border-[var(--almanac-ink)] px-6 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-40"
+                  >
+                    {isSubmitting ? "Sending…" : "Send message →"}
+                  </button>
                 </div>
-              ))}
-            </div>
+              </form>
+            )}
+          </section>
+        </div>
+
+        {/* FAQ */}
+        <section className="mt-14 border-t border-[var(--almanac-border)] pt-10">
+          <p className="mb-5 text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
+            Frequently asked
+          </p>
+          <div className="border-2 border-[var(--almanac-ink)]">
+            {faqs.map((item, i) => (
+              <div
+                key={item.q}
+                className={`grid gap-2 px-4 py-4 text-sm sm:grid-cols-[1fr_1.4fr] ${
+                  i % 2 === 0 ? "bg-[var(--almanac-parchment)]" : "bg-[var(--almanac-parchment-alt)]"
+                } ${i > 0 ? "border-t border-[var(--almanac-border)]" : ""}`}
+              >
+                <p className="font-bold">{item.q}</p>
+                <p className="leading-relaxed text-[var(--almanac-ink-mid)]">{item.a}</p>
+              </div>
+            ))}
           </div>
         </section>
       </main>

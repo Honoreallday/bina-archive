@@ -1,50 +1,51 @@
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { getPublishedFilms } from "@/lib/films-data"
 
 export function AboutPreview() {
+  const films = getPublishedFilms()
+  const totalMins = films.reduce((acc, f) => acc + (Number.parseInt(f.duration, 10) || 0), 0)
+
   return (
-    <section className="px-6 lg:px-8 py-24 border-t border-border">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
-          <div>
-            <p className="text-accent text-sm tracking-widest uppercase mb-4">About the Archive</p>
-            <h2 className="text-3xl md:text-4xl font-light tracking-tight text-foreground mb-6 text-balance">
-              Preserving and sharing a body of work
-            </h2>
-            <div className="space-y-4 text-muted-foreground leading-relaxed">
-              <p>
-                This archive serves as a digital repository for a collection of films spanning 
-                over a decade of practice. Each work explores themes of memory, displacement, 
-                and the constructed nature of image-making.
-              </p>
-              <p>
-                The archive is intended for researchers, curators, and viewers interested in 
-                engaging with the full scope of these moving image works. Many pieces are 
-                available for streaming, while others require institutional access.
-              </p>
-            </div>
-            <Link
-              href="/about"
-              className="inline-flex items-center gap-2 mt-8 text-sm text-foreground hover:text-accent transition-colors"
-            >
-              Learn more about the artist
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          
-          <div className="space-y-6">
-            <div className="border-l-2 border-accent pl-6">
-              <p className="text-2xl md:text-3xl font-light text-foreground mb-2">38</p>
-              <p className="text-sm text-muted-foreground">Films in the archive</p>
-            </div>
-            <div className="border-l-2 border-border pl-6">
-              <p className="text-2xl md:text-3xl font-light text-foreground mb-2">2012 - 2024</p>
-              <p className="text-sm text-muted-foreground">Span of works</p>
-            </div>
-            <div className="border-l-2 border-border pl-6">
-              <p className="text-2xl md:text-3xl font-light text-foreground mb-2">24</p>
-              <p className="text-sm text-muted-foreground">Available for streaming</p>
-            </div>
+    <section className="mx-auto max-w-6xl border-t border-[var(--almanac-border)] px-6 py-14 md:px-10">
+      <div className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
+            About the archive
+          </p>
+          <h2 className="mt-2 text-xl font-bold tracking-tight">Dream Chambers Public Access</h2>
+          <p className="mt-4 max-w-md text-balance text-lg font-bold leading-snug">
+            Founded in Minneapolis in 2019 —{" "}
+            <span className="font-[family-name:var(--font-almanac-script)] font-normal text-[var(--almanac-blue)]">
+              built to support Black experimental film.
+            </span>
+          </p>
+          <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--almanac-ink-mid)]">
+            A vision to reposition non-narrative moving image as an archival, historical, and
+            liberatory medium that is accessible to all.
+          </p>
+          <Link
+            href="/about"
+            className="mt-5 inline-block border-2 border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
+          >
+            Read more →
+          </Link>
+        </div>
+
+        <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
+          <div className="grid grid-cols-2 gap-px">
+            {[
+              { n: String(films.length), label: "Films" },
+              { n: "12", label: "Years" },
+              { n: "4", label: "Collections" },
+              { n: `${Math.round(totalMins / 60)}h`, label: "Archived" },
+            ].map(({ n, label }) => (
+              <div key={label} className="flex flex-col bg-[var(--almanac-parchment)] px-5 py-5">
+                <span className="text-3xl font-bold tabular-nums leading-none">{n}</span>
+                <span className="mt-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--almanac-ink-light)]">
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

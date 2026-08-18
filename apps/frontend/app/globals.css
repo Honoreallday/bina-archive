@@ -4,6 +4,20 @@
 /* Dark theme only - no light mode variant needed */
 
 :root {
+  /* Almanac design system — the DCPA "printed ledger" theme used under app/examples/almanac/.
+     Change a value here to re-color the entire almanac section in one place instead of
+     editing individual pages. See .claude/docs/almanac-design-system.md for the full spec. */
+  --almanac-parchment: #efe9dd;      /* Background 1 — primary page background */
+  --almanac-parchment-alt: #e6dfd0;  /* Background 2 — alternating row background */
+  --almanac-ink: #211f1a;            /* Primary text, all borders, dark backgrounds */
+  --almanac-ink-mid: #3d382f;        /* Body copy */
+  --almanac-ink-light: #6b6559;      /* Labels, tertiary text, metadata */
+  --almanac-ink-divider: #4a463d;    /* Divider lines on dark (ink) backgrounds, e.g. table headers */
+  --almanac-border: #c9c2b2;         /* Light dividers, secondary borders */
+  --almanac-blue: #2f43c9;           /* Accent 2 — links, script captions, selection bg, hover states */
+  --almanac-red: #d95b43;            /* Accent 1 — section labels, pull captions */
+  --almanac-gold: #e0b64a;           /* Accent — counted badges, hover highlights */
+
   /* Dark theme by default - minimal film archive aesthetic */
   --background: oklch(0.08 0 0);
   --foreground: oklch(0.92 0 0);

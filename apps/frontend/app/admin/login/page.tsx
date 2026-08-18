@@ -3,10 +3,6 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Film } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { saveToken } from "@/lib/auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
@@ -22,21 +18,17 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setIsLoading(true)
     setError("")
-
     try {
       const res = await fetch(`${API_URL}/api/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       })
-
       const data = await res.json()
-
       if (!res.ok) {
         setError(data.error ?? "Login failed")
         return
       }
-
       saveToken(data.token)
       router.push("/admin")
     } catch {
@@ -47,85 +39,74 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <Link 
-          href="/" 
-          className="flex items-center justify-center gap-2 mb-8 text-foreground hover:text-accent transition-colors"
-        >
-          <Film className="h-6 w-6" />
-          <span className="text-lg font-medium tracking-tight">Archive</span>
-        </Link>
+    <div className="flex min-h-screen items-center justify-center bg-[var(--almanac-parchment)] px-6 font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-[var(--almanac-red)]">Restricted access</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight">Admin</h1>
+          <p className="mt-1 font-[family-name:var(--font-almanac-script)] text-lg text-[var(--almanac-blue)]">
+            enter your credentials
+          </p>
+        </div>
 
-        <Card className="border-border bg-card">
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl">Admin Login</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  Password
-                </label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="bg-secondary border-border pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                    <span className="sr-only">
-                      {showPassword ? "Hide password" : "Show password"}
-                    </span>
-                  </button>
-                </div>
+        <div className="border-2 border-[var(--almanac-ink)]">
+          <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+            Sign in
+          </header>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-5">
+            {error && (
+              <div className="border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)] px-3 py-2 text-xs text-[var(--almanac-ink-mid)]">
+                {error}
               </div>
+            )}
 
-              <Button
-                type="submit"
-                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                disabled={isLoading}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="password"
+                className="text-[11px] uppercase tracking-[0.2em] text-[var(--almanac-ink-light)]"
               >
-                {isLoading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <Link 
-                href="/" 
-                className="text-sm text-muted-foreground hover:text-accent transition-colors"
-              >
-                Back to Archive
-              </Link>
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full border-2 border-[var(--almanac-ink)] bg-[var(--almanac-parchment)] px-3 py-2 pr-16 text-sm outline-none placeholder:text-[var(--almanac-border)] focus:border-[var(--almanac-blue)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] uppercase tracking-[0.1em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-ink)]"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Protected area. Unauthorized access is prohibited.
+            <div className="flex items-center justify-between border-t border-[var(--almanac-border)] pt-4">
+              <Link
+                href="/"
+                className="text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)] hover:text-[var(--almanac-ink)]"
+              >
+                ← back to site
+              </Link>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="border-2 border-[var(--almanac-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-40"
+              >
+                {isLoading ? "Signing in…" : "Sign in →"}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.14em] text-[var(--almanac-ink-light)]">
+          Protected area · Unauthorized access is prohibited
         </p>
       </div>
     </div>
