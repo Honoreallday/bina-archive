@@ -4,9 +4,14 @@
 /* Dark theme only - no light mode variant needed */
 
 :root {
-  /* Almanac design system — the DCPA "printed ledger" theme used under app/examples/almanac/.
-     Change a value here to re-color the entire almanac section in one place instead of
-     editing individual pages. See .claude/docs/almanac-design-system.md for the full spec. */
+  /* Almanac design system — the DCPA "printed ledger" theme used site-wide.
+     Change a value here to re-color the entire site in one place instead of
+     editing individual pages. See .claude/docs/almanac-design-system.md for the full spec.
+
+     Every page/component reads colors through these --almanac-* variables and typography
+     through --font-almanac-mono / --font-almanac-script — never through a raw font name or
+     hex code directly. That indirection is what makes the [data-theme="..."] blocks below
+     able to re-skin the entire site without touching a single page or component file. */
   --almanac-parchment: #efe9dd;      /* Background 1 — primary page background */
   --almanac-parchment-alt: #e6dfd0;  /* Background 2 — alternating row background */
   --almanac-ink: #211f1a;            /* Primary text, all borders, dark backgrounds */
@@ -17,8 +22,16 @@
   --almanac-blue: #2f43c9;           /* Accent 2 — links, script captions, selection bg, hover states */
   --almanac-red: #d95b43;            /* Accent 1 — section labels, pull captions */
   --almanac-gold: #e0b64a;           /* Accent — counted badges, hover highlights */
+  color-scheme: light;
 
-  /* Dark theme by default - minimal film archive aesthetic */
+  /* Logical font aliases — every page references these two, never the raw font-loader
+     variables directly. Swapping which real font each one points to (per theme, below)
+     is how typography changes site-wide without touching any component. */
+  --font-almanac-mono: var(--font-space-mono);
+  --font-almanac-script: var(--font-kalam);
+
+  /* Dark theme by default - minimal film archive aesthetic (shadcn tokens, mostly unused
+     now that the almanac restyle covers the whole site) */
   --background: oklch(0.08 0 0);
   --foreground: oklch(0.92 0 0);
   --card: oklch(0.12 0 0);
@@ -53,6 +66,71 @@
   --sidebar-accent-foreground: oklch(0.92 0 0);
   --sidebar-border: oklch(0.22 0 0);
   --sidebar-ring: oklch(0.75 0.15 55);
+}
+
+/* ============================================================================
+   DARK COLORWAY EXPERIMENTS — client preview branch, not final.
+   Three alternate palettes + typefaces, switched at runtime via the floating
+   theme switcher (components/theme-switcher.tsx), which sets data-theme on <html>.
+   Structure/layout is untouched — only colors and fonts change. ============ */
+
+/* ---- Colorway 1: "Terminal Noir" ----
+   Closest to the original all-black CRT/terminal example the almanac theme was
+   mixed from — true black, warm off-white ink, hot-pink + mint CRT accents. */
+[data-theme="terminal-noir"] {
+  --almanac-parchment: #0c0c0c;
+  --almanac-parchment-alt: #161616;
+  --almanac-ink: #f4f1ea;
+  --almanac-ink-mid: #cdc9bd;
+  --almanac-ink-light: #8f8b7f;
+  --almanac-ink-divider: #c4bfae;
+  --almanac-border: #2a2a2a;
+  --almanac-blue: #ff5da2;
+  --almanac-red: #7cffb2;
+  --almanac-gold: #f0c14b;
+  color-scheme: dark;
+  --font-almanac-mono: var(--font-ibm-plex-mono);
+  --font-almanac-script: var(--font-caveat);
+}
+
+/* ---- Colorway 2: "Midnight Ledger" ----
+   The almanac's own ledger/register aesthetic, inverted to a warm near-black —
+   elegant and literary rather than CRT-grungy. Deep archive blue, rust, gold. */
+[data-theme="midnight-ledger"] {
+  --almanac-parchment: #15130f;
+  --almanac-parchment-alt: #1c1a15;
+  --almanac-ink: #e8dfc8;
+  --almanac-ink-mid: #c2b89e;
+  --almanac-ink-light: #8a8170;
+  --almanac-ink-divider: #b8ad90;
+  --almanac-border: #332f26;
+  --almanac-blue: #7c8fff;
+  --almanac-red: #e8785a;
+  --almanac-gold: #e0b64a;
+  color-scheme: dark;
+  --font-almanac-mono: var(--font-fraunces);
+  --font-almanac-script: var(--font-kalam);
+}
+
+/* ---- Colorway 3: "Electric Dusk" ----
+   Built around the client's supplied palette (f78da7 / 000AFF / F6Eb7f / 8785b9):
+   electric blue as the primary accent (lightened slightly from the raw hex for
+   on-black text legibility), pink and pale yellow as secondary accents, and the
+   lavender-purple woven in as the label/metadata color and background undertone. */
+[data-theme="electric-dusk"] {
+  --almanac-parchment: #0d0b14;
+  --almanac-parchment-alt: #171420;
+  --almanac-ink: #efeaf7;
+  --almanac-ink-mid: #c9c2dc;
+  --almanac-ink-light: #8785b9;
+  --almanac-ink-divider: #c7bfd8;
+  --almanac-border: #2a2536;
+  --almanac-blue: #4657ff;
+  --almanac-red: #f78da7;
+  --almanac-gold: #f6eb7f;
+  color-scheme: dark;
+  --font-almanac-mono: var(--font-jetbrains-mono);
+  --font-almanac-script: var(--font-instrument-serif);
 }
 
 @theme inline {
