@@ -73,11 +73,32 @@ export default function AdminUploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadPhase, setUploadPhase] = useState("")
   const [error, setError] = useState("")
+  const [savedFilm, setSavedFilm] = useState<{ title: string; published: boolean } | null>(null)
 
   const toggleCollection = (id: string) =>
     setSelectedCollections((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     )
+
+  const resetForm = () => {
+    setSavedFilm(null)
+    setFilmFile(null)
+    setThumbnailFile(null)
+    setStillFiles([])
+    setMetadata({
+      title: "",
+      year: String(new Date().getFullYear()),
+      duration: "",
+      description: "",
+      director: "",
+      genre: "",
+      cinematography: "",
+      editor: "",
+      sound: "",
+      music: "",
+    })
+    setSelectedCollections([])
+  }
 
   const handleFilmDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -105,6 +126,7 @@ export default function AdminUploadPage() {
     if (!filmFile || !metadata.title) return
     setIsUploading(true)
     setError("")
+    setSavedFilm(null)
 
     try {
       setUploadPhase("Preparing upload…")
@@ -160,7 +182,10 @@ export default function AdminUploadPage() {
         }),
       })
       if (!filmRes.ok) throw new Error("Failed to save film record")
-      router.push("/admin/films")
+      setSavedFilm({ title: metadata.title, published: publishImmediately })
+      setIsUploading(false)
+      setUploadProgress(0)
+      setUploadPhase("")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed")
       setIsUploading(false)
@@ -180,12 +205,6 @@ export default function AdminUploadPage() {
         <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">New entry</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">Upload Film</h1>
       </div>
-
-      {error && (
-        <div className="border border-[var(--almanac-border)] bg-[var(--almanac-parchment-alt)] px-3 py-2 text-xs text-[var(--almanac-ink-mid)]">
-          {error}
-        </div>
-      )}
 
       {/* Film file drop zone */}
       <section className="border-2 border-[var(--almanac-ink)]">
@@ -508,25 +527,68 @@ export default function AdminUploadPage() {
         </section>
       )}
 
+      {/* Result — appears in the same spot as the progress bar/submit row, right
+          where you're already looking, and stays until you act on it. */}
+      {!isUploading && error && (
+        <section className="border-2 border-[var(--almanac-red)]">
+          <header className="border-b border-[var(--almanac-red)] bg-[var(--almanac-red)]/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-red)]">
+            Upload failed
+          </header>
+          <div className="p-4 text-sm text-[var(--almanac-ink-mid)]">{error}</div>
+        </section>
+      )}
+
+      {!isUploading && savedFilm && (
+        <section className="border-2 border-[var(--almanac-blue)]">
+          <header className="border-b border-[var(--almanac-blue)] bg-[var(--almanac-blue)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
+            Saved ✓
+          </header>
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-[var(--almanac-ink-mid)]">
+              <span className="font-bold text-[var(--almanac-ink)]">{savedFilm.title}</span> was saved as{" "}
+              {savedFilm.published ? "published" : "a draft"}.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="border border-[var(--almanac-border)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] hover:border-[var(--almanac-ink)]"
+              >
+                Upload another
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/admin/films")}
+                className="border-2 border-[var(--almanac-ink)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
+              >
+                View films list →
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Submit */}
-      <div className="flex items-center justify-end gap-3 border-t border-[var(--almanac-border)] pt-4">
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={() => handleSubmit(false)}
-          className="border border-[var(--almanac-border)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:border-[var(--almanac-ink)] disabled:opacity-40"
-        >
-          Save as draft
-        </button>
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={() => handleSubmit(true)}
-          className="border-2 border-[var(--almanac-ink)] px-6 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-40"
-        >
-          {isUploading ? "Uploading…" : "Publish film →"}
-        </button>
-      </div>
+      {!savedFilm && (
+        <div className="flex items-center justify-end gap-3 border-t border-[var(--almanac-border)] pt-4">
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={() => handleSubmit(false)}
+            className="border border-[var(--almanac-border)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:border-[var(--almanac-ink)] disabled:opacity-40"
+          >
+            Save as draft
+          </button>
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={() => handleSubmit(true)}
+            className="border-2 border-[var(--almanac-ink)] px-6 py-2 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)] disabled:opacity-40"
+          >
+            {isUploading ? "Uploading…" : "Publish film →"}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
