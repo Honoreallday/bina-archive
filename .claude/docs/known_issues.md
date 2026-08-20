@@ -122,16 +122,46 @@ Add an EventBridge rule that fires when a MediaConvert job reaches `COMPLETE` or
 
 ---
 
-## Migration 003 (credits + stills columns) not yet run against any real database
+## Migration 003 (credits + stills columns) not yet run against any real database (fixed 2026-08-20)
 
 **Symptom**
-`app/films/[slug]/page.tsx` requests `cinematography`, `editor`, `sound`, `music`, and `stills` from `GET /api/films/:slug`, and `src/db/films.js` selects those columns — but as of 2026-08-18 the columns don't exist in any deployed database yet, only in the migration file.
+`app/films/[slug]/page.tsx` requests `cinematography`, `editor`, `sound`, `music`, and `stills` from `GET /api/films/:slug`, and `src/db/films.js` selects those columns — but as of 2026-08-18 the columns don't exist in any deployed database yet, only in the migration file. Confirmed as the cause of a failed real upload attempt on 2026-08-19: `POST /api/admin/films`'s `INSERT` referenced these columns, so it failed outright and no row was created at all.
 
 **Root cause**
 `apps/backend/src/db/migrations/003_add_credits_and_stills_to_films.sql` was added during the film-detail schema-extension work (see `pickupleftoff.md`, 2026-08-18) but `npm run` for the migration runner (`src/db/migrate.js`) was never executed against local dev, Neon, or any other environment this session — only local `tsc`/`node -c` checks were run.
 
-**To do**
-Run the migration (`node src/db/migrate.js` from `apps/backend`, with `DATABASE_URL` pointed at the target DB) against local dev before testing the film detail page end-to-end, and against the Neon production database before deploying. Until this runs, `SELECT`s referencing the new columns will fail against a real Postgres instance — local `tsc`/`node -c` checks can't catch this since it's a runtime DB-schema mismatch, not a type or syntax error.
+**Fix**
+Ran `npm run migrate` (from `apps/backend`) against the real Neon production database on 2026-08-20, with `DATABASE_URL` set as a one-off shell environment variable (never written to disk). Verified via a throwaway script querying `information_schema.columns` that `cinematography`, `editor`, `sound`, `music`, and `stills` all exist on the live `films` table, then deleted that script. **Migration 003 is now live in production.**
+
+**What to watch for**
+Any *future* migration added to `src/db/migrations/` needs this same manual step — the migration runner is never invoked automatically on deploy (Railway just starts the server; nothing in its build/start command runs `npm run migrate`). If a future migration ships without this, expect the exact same symptom: `SELECT`/`INSERT` statements referencing new columns will fail against production even though local `tsc` checks pass clean, since it's a runtime DB-schema mismatch, not a type or syntax error.
+
+---
+
+## S3 bucket CORS policy blocked uploads from the deployed site (fixed 2026-08-20)
+
+**Symptom**
+Uploading a film from the deployed (Vercel) site failed. Browser Network tab showed the initial `POST /api/admin/upload-url` (getting the presigned URL) succeeded, but the direct browser → S3 `PUT` of the actual video file failed with a CORS error — reported client-side only as a terse `"S3 network error"`, since browsers hide the real response body on CORS failures.
+
+**Root cause**
+This is an **S3 bucket-level CORS policy**, entirely separate from the Express backend's own CORS config (`apps/backend/src/app.js`, which is correctly scoped to `FRONTEND_URL` and was never the problem — proven by the presigned-URL step succeeding). The bucket's CORS configuration didn't include the Vercel production domain as an allowed origin. This project has no infrastructure-as-code (`infrasturcture/` is an empty placeholder) — S3 bucket settings are managed by hand in the AWS console, so nothing in this repo would have caught or prevented this.
+
+**Fix**
+Added a CORS configuration to the `bina-media-archive-dev` bucket (AWS Console → S3 → bucket → Permissions → CORS) allowing the real origins:
+```json
+[
+  {
+    "AllowedOrigins": ["https://<the-real-vercel-domain>", "http://localhost:3000"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
+
+**What to watch for**
+`AllowedHeaders` must include `Content-Type` — the upload code explicitly sets that header on the PUT (`xhr.setRequestHeader("Content-Type", file.type)`), which forces a CORS preflight (`OPTIONS`) request; without `Content-Type` in `AllowedHeaders`, the preflight itself fails with this exact symptom. If a new Vercel preview/production domain is ever added (custom domain, new deployment alias, etc.), it needs to be added to this same bucket CORS policy or uploads from that domain will fail identically. Since this isn't tracked as code anywhere, it's easy to forget when domains change.
 
 ---
 

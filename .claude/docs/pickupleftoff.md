@@ -1,12 +1,46 @@
 # Pick Up Left Off
 
-Last updated: 2026-08-18
+Last updated: 2026-08-20
 
 ---
 
 ## Current Direction
 
-MVP 1.0 (deployed 2026-06-10, see below) proved the pipeline works end to end but shipped with known hardcoded-data gaps (see "Code Gaps Remaining" below — never fixed, still open). Rather than patch those in place, the plan is now to fix them **at the same time** as the Almanac restyle, and ship the result as the first production-ready version of the site — a restyled MVP with the original gaps closed, not two separate efforts. That combined plan lives in `development_roadmap.md` Phase 9; the page-by-page mechanics of the restyle live in `page-inventory.md`.
+Phase 9 (the almanac restyle + Phase 6 gap-closing port, see below) is complete and **live in production** — `main` is pushed, Vercel deploys from it, and the client has started using the real admin upload flow. Focus has shifted from porting to two things: (1) **production stabilization** — fixing bugs only visible under real usage (see `known_issues.md`, which is now the most active doc in this set), and (2) a **client-facing design exploration** — three alternate dark colorways behind a live theme-switcher widget, merged to `main` and awaiting client feedback (see the 2026-08-19–20 session below). Next planned feature work (not started) is the real aggregate-statistics build documented in `development_roadmap.md` Phase 7.
+
+---
+
+## Session 2026-08-19–20 — Production Stabilization + Dark Colorway Experiments
+
+First session working against the **live deployed site** rather than local dev — most of this was reactive, triggered by the user actually using the real admin flow and hitting real infrastructure gaps. Spans two calendar days in the session log but is one continuous thread of work.
+
+### Dark colorway experiments (client design review)
+User asked for 3 alternate dark color/typography treatments to send the client for feedback, explicitly not touching page structure. Built entirely as CSS-variable overrides in `globals.css` via a `data-theme` attribute — zero page/component files needed changing, since every page already reads colors/fonts through `--almanac-*` / `--font-almanac-*` variables rather than hardcoded values:
+- **Terminal Noir** — true black, off-white ink, hot-pink/mint CRT accents (closest to the original all-black terminal example theme the almanac was mixed from). IBM Plex Mono + Caveat.
+- **Midnight Ledger** — the almanac's own ledger aesthetic inverted to warm near-black, more literary than CRT. Fraunces + Kalam.
+- **Electric Dusk** — built from the client's supplied palette (`f78da7`/`000AFF`/`F6Eb7f`/`8785b9`). JetBrains Mono + Instrument Serif italic.
+
+Added `components/theme-switcher.tsx`, a floating widget (persisted via `localStorage`, flash-prevented via an inline script in `app/layout.tsx`) that cycles Light + the 3 dark options. Built on a throwaway branch (`design/dark-colorway-experiments`) first, then **merged into `main` at the user's explicit request** — meaning the switcher is now visible to every visitor on the live site, not just the client. Flagged this clearly before merging; user proceeded anyway.
+
+### Admin Upload: fixed an invisible-error UX bug
+User reported a successful-looking-but-brief progress bar and no visible error after a failed upload. Root cause: the error banner rendered at the *top* of the page while the progress bar/submit button live near the *bottom* — a failure could render entirely off-screen above the fold if scrolled down watching the upload. Fixed by moving the result state into the same slot the progress bar occupies, and replaced the old silent auto-redirect-on-success with a persistent "Saved ✓" panel (title, draft/published status, explicit "Upload another" / "View films list" actions).
+
+### Migration 003 finally run against the real Neon production database
+This had been sitning as a known gap since the film-detail schema extension (2026-08-18) — the `cinematography`/`editor`/`sound`/`music`/`stills` columns only existed in the migration file, never applied to prod. User shared their Neon connection string directly in chat (explicitly scoped: "only use this to run the migration, don't save it anywhere except an env file"). Ran it via a **temporary shell environment variable, never written to any file** — stricter than what was asked, since the harness's shell doesn't persist env vars between tool calls anyway, so there was nothing to clean up afterward. Verified the columns exist via a throwaway script (`_verify_migration.js`), then deleted that script. **Migration 003 is now live in production.**
+
+### S3 bucket CORS — blocked uploads from the deployed site
+First real upload attempt from the deployed site failed with an S3 CORS error (confirmed via the browser Network tab — the presigned-URL fetch to our own API succeeded, but the direct browser→S3 `PUT` was blocked). This is an **AWS S3 bucket-level CORS policy**, not application code — nothing in this repo manages infrastructure as code (`infrasturcture/` is still an empty placeholder), so it's not something fixable from here directly. Walked the user through adding a CORS policy via the S3 console (`AllowedOrigins` including their Vercel domain, `AllowedHeaders` critically including `Content-Type` since the upload code sets that header and triggers a preflight). **User applied it directly in AWS and confirmed uploads now work.** Not tracked anywhere in git — if this ever needs redoing (new preview domain, bucket recreated, etc.), the required policy shape is written up in `known_issues.md`.
+
+### Home's Featured Films / Collections Preview — fixed a real 404 bug, and corrected an earlier claim
+Once a real row existed in the `films` table, every Featured Film link on Home 404'd. Root cause: `components/featured-films.tsx` and `components/collections-preview.tsx` read from `lib/films-data.ts` fixture data (fake slugs), while `/films/[slug]` queries the live database. **This is a case where an earlier session's claim of "closing the Phase 6 gap" was incomplete** — it made the fixture slugs consistent across Home/Collections, but never reconciled them with Film Detail already being live-API-driven. Said so plainly to the user rather than glossing over it. Fixed: both components now `fetch` `GET /api/films` directly. `FeaturedFilms` shows the 3 most-recently-published real films (no `featured` column exists in the schema — recency is a stand-in, tracked in `known_issues.md`) and hides itself entirely when nothing's published rather than showing an empty shell. `CollectionsPreview` matches `tags` against collection slugs directly — real uploads store lowercase slugs (`"shorts"`, `"documentary"`, etc., matching the admin form's checkbox `id`s), not the title-case values the fixture data used.
+
+### Documentation added at the user's request
+Per direct ask, `known_issues.md` got three additions: the `featured`-column gap (what a real fix needs), a clarification that `/admin/films/[id]/edit` already covers most metadata editing (title/year/genre/credits/collections/published, via the existing `PATCH` route) — what's genuinely still missing is thumbnail/raw-file replacement and stills management post-upload, not a metadata editor in general — and the Featured Films fix write-up above.
+
+### Test content
+Gave the user a download link for Big Buck Bunny (the same public-domain film already used as the placeholder HLS stream in fixture data) and recommended title `"Big Buck Bunny"` (clean slug: `big-buck-bunny`) so they can re-upload a real, findable row through the live admin flow — the raw video from their first (CORS-blocked) attempt is an orphaned S3 object with no DB row (known gap, not cleaned up automatically). Not yet confirmed done as of this write-up.
+
+**Everything in this session is pushed to `origin/main`** — nothing left staged locally.
 
 ---
 

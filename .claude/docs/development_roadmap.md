@@ -180,12 +180,20 @@ Goal: ship the first production-ready version of the site as the Almanac-restyle
 32. ✅ **Contact** (`app/contact/page.tsx`) — done 2026-08-18. Per user request, renamed from "Correspond" to plain "Contact" and dropped the personified-archive copy voice.
 33. ✅ **Three new pages with no real-MVP counterpart** (`app/distribution/`, `app/submissions/`, `app/pricing/`) — done 2026-08-18, added to nav.
 34. ✅ **Admin Login, Admin Dashboard, Admin Settings, Admin Films list** — done 2026-08-18. Login and Films list were near-1:1 restyles. Dashboard's hardcoded-stats gap is **unchanged and still open** — full plan (migration, endpoints, design decisions) written up in "Real Aggregate Statistics" under Phase 7 above; explicitly out of scope for this pass, tracked as its own backend task. Settings remains a non-functional stub (no backend endpoint exists for it yet).
-35. **Favicon** — drop the client-supplied graphic in per the format Claude specified in the current conversation; small, independent task, do whenever convenient.
+35. ✅ **Favicon** — done. Replaced with the client-supplied DCPA mark (`icon-light-32x32.png`, `apple-icon.png`). Fine detail is a bit faint at 32px (the source has fine dot/halftone texture that doesn't survive shrinking) — acceptable placeholder, can be revisited with a bolder-lined asset later. `icon-dark-32x32.png` is still the old generic placeholder, unaddressed.
 
-### Phase 9 complete as of 2026-08-18
-Every page in the almanac prototype set is now ported into the real `app/` routes. What's left is backend-only work, not restyling: the admin dashboard stats endpoint (step 34), running migration 003 against a real database (see `known_issues.md`), and stills management on the Edit page (step 29). The favicon (step 35) is still waiting on the client.
+### Phase 9 complete as of 2026-08-18; fully unblocked in production as of 2026-08-20
+Every page in the almanac prototype set is ported into the real `app/` routes and the site is live in production. Migration 003 has now actually been run against the real Neon database (2026-08-20, see `known_issues.md`) — the schema-extension work from step 28 is no longer just code, it's live. What's left is backend-only work, not restyling: the admin dashboard stats endpoint (step 34, full plan in "Real Aggregate Statistics" above), and stills management on the Edit page (step 29).
 
 ### Explicitly out of scope for this phase
 - Populating the real DCPA film catalogue (replacing all fixture/demo film data with the client's actual films) — tracked separately, will happen incrementally as films get uploaded through the real admin flow once it's live
 - The video-replacement flow on Admin Edit ("Replace File") — still genuinely hard (new upload + re-transcode), stays a UI stub post-port same as it is today
 - Everything in Phase 8 (infra-as-code, env separation, CloudFront hardening) — unrelated to this restyle push, can happen in parallel or after
+
+---
+
+## Dark Colorway Experiments (client design review, live 2026-08-20)
+
+Separate from the phased plan above — a client-facing design exploration, not a functionality build-out. Three alternate dark color/typography treatments were added purely as CSS-variable overrides in `apps/frontend/app/globals.css` (a `data-theme` attribute swaps which real color/font each `--almanac-*` / `--font-almanac-*` variable resolves to), plus a floating `components/theme-switcher.tsx` widget mounted in the root layout. No page or component structure changed — see `pickupleftoff.md` (2026-08-19–20 session) for the full writeup of what each colorway looks like.
+
+**Currently merged into `main` and live in production** — the theme-switcher button is visible to every site visitor, not gated to the client only. This was a deliberate call the user made after being told explicitly what it meant; revisit if the client wants a private review process instead once they've picked (or rejected) an option. Once a direction is chosen: fold the winning palette into `globals.css`'s default `:root` block, delete the losing two `[data-theme="..."]` blocks and their now-unused font loaders in `app/layout.tsx`, and remove the theme-switcher component entirely (it's explicitly a review tool, not intended to ship as a permanent site feature).

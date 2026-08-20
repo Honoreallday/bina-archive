@@ -1,6 +1,8 @@
 # Almanac Design System
 
-Extracted from `apps/frontend/app/examples/almanac`. This is the target design language for the bina-archive MVP redesign.
+Originally extracted from `apps/frontend/app/examples/almanac` (that prototype directory no longer exists on `main` as of the 2026-08-18 git cleanup — it's preserved on the `v0/frontend-design-examples-a166009b` branch only). This is the light-mode design language now live across the real site.
+
+**Pending client decision (as of 2026-08-20):** three alternate dark colorways exist behind a live theme-switcher on the site (not just this light palette) — see `development_roadmap.md` → "Dark Colorway Experiments" for what they are and how they're implemented. This doc describes the default/light treatment only; update it once the client picks a direction.
 
 ---
 
