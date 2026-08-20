@@ -4,6 +4,45 @@ A running log of bugs encountered, their root cause, and how they were resolved.
 
 ---
 
+## No `featured` column — Home's Featured Films uses recency as a stand-in
+
+**Symptom**
+None yet visible, but worth knowing: `components/featured-films.tsx` (fixed 2026-08-20 to query the live API instead of fixture data, see entry below) shows the 3 most-recently-published films. There's no actual editorial curation — you can't mark a specific film as "featured" and have it show regardless of upload date.
+
+**Root cause**
+The `films` table (`001_create_films.sql`) has no `featured` (or similar) column. The old fixture file (`lib/films-data.ts`) had a `featured: boolean` field per film, but that was fixture-only — it was never part of the real schema, and nothing in the real admin UI ever set such a flag.
+
+**To do**
+Add a `featured BOOLEAN NOT NULL DEFAULT FALSE` column via a new migration, a toggle on the Admin Edit page (alongside the existing Draft/Published toggle), include it in the `PATCH /api/admin/films/:id` allowed-fields list (`src/db/films.js`), and switch `FeaturedFilms` to request featured films specifically (e.g. `GET /api/films?featured=true`) instead of just slicing the most recent N.
+
+---
+
+## Admin metadata editing: what already exists vs. what's still missing
+
+Not a bug — a clarification, since it's easy to assume this doesn't exist yet. It does, mostly.
+
+**What's already built:** `/admin/films/[id]/edit` (linked from the "Edit" action on each row in `/admin/films`) already provides a real form-based interface over `PATCH /api/admin/films/:id` — title, year, duration, genre, director, description, cinematography/editor/sound/music credits, collection tags, and the published/draft toggle are all editable there today. Deleting a film (with a confirm dialog) is on the same page.
+
+**What's genuinely still missing** — no UI exists for any of these, even though the page has stub buttons hinting at them:
+- Replacing the thumbnail image after initial upload ("Upload thumbnail" button is non-functional)
+- Replacing the raw video file itself ("Replace file" button is non-functional — also a genuinely hard problem, since it means a new S3 upload + re-transcode)
+- Viewing, adding, or removing an individual film's **stills** after initial upload (no UI at all for this, not even a stub — stills can currently only be set once, at upload time)
+
+---
+
+## Home's Featured Films 404'd once real uploads started (fixed 2026-08-20)
+
+**Symptom**
+Clicking any film card in the Home page's "Featured" section 404'd.
+
+**Root cause**
+`components/featured-films.tsx` and `components/collections-preview.tsx` read from `lib/films-data.ts` (fixture data — fabricated demo films with slugs like `dissolving-boundaries`), while `/films/[slug]` (the real film detail page) queries the live database via `GET /api/films/:slug`. Once the real `films` table actually had a row in it, none of the fixture slugs matched anything real, so every click 404'd. This was a real gap that an earlier restyle-porting pass described as "closed" — it wasn't; it only made the fixture slugs *consistent* across Home/Collections, not *resolvable* against the live database Film Detail actually queries.
+
+**Fix**
+Both components now `fetch` `GET /api/films` directly instead of importing the fixture file. `FeaturedFilms` shows the 3 most-recently-published real films (see the `featured` column entry above — this is a recency-based stand-in, not real curation). `CollectionsPreview` computes real counts by matching `tags` against the collection slug directly.
+
+---
+
 ## Film Stills upload never actually uploaded anything (fixed 2026-08-18)
 
 **Symptom**
