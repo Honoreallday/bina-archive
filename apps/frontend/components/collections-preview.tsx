@@ -1,37 +1,53 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getFilmsByCollection } from "@/lib/films-data"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
+
+interface Film {
+  tags: string[] | null
+}
 
 const collectionsMeta = [
   {
     slug: "documentary",
-    key: "Documentary",
     label: "Documentary",
     desc: "Observational and essay films exploring place, memory, and community.",
   },
   {
     slug: "shorts",
-    key: "Shorts",
     label: "Shorts",
     desc: "Brief works under 20 minutes, ranging from experimental sketches to condensed narratives.",
   },
   {
     slug: "installations",
-    key: "Installations",
     label: "Installations",
     desc: "Multi-channel and site-specific works designed for gallery exhibition.",
   },
   {
     slug: "2020-2024",
-    key: "2020-2024",
     label: "2020 – 2024",
     desc: "Recent works produced during and after the pandemic.",
   },
 ]
 
 export function CollectionsPreview() {
+  const [films, setFilms] = useState<Film[]>([])
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/films`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setFilms)
+      .catch(() => setFilms([]))
+  }, [])
+
+  // Real admin-uploaded films store collection membership as lowercase slugs
+  // in `tags` (matching the checkbox `id`s on the upload/edit forms), so we
+  // match directly against col.slug — no title-case conversion needed.
   const collections = collectionsMeta.map((c) => ({
     ...c,
-    count: getFilmsByCollection(c.key).length,
+    count: films.filter((f) => f.tags?.includes(c.slug)).length,
   }))
 
   return (
