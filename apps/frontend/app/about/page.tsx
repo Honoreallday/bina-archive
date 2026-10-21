@@ -2,22 +2,13 @@ import { Metadata } from "next"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { getPublishedFilms } from "@/lib/films-data"
 
 export const metadata: Metadata = {
   title: "About | Dream Chambers Public Access",
   description: "Learn about Dream Chambers Public Access and the moving image archive.",
 }
 
-const press = [
-  { quote: "Insert quote here", source: "[Publication]", year: "[Year]" },
-  { quote: "Insert quote here", source: "[Publication]", year: "[Year]" },
-  { quote: "Insert quote here", source: "[Publication]", year: "[Year]" },
-]
-
 export default function AboutPage() {
-  const films = getPublishedFilms()
-
   return (
     <div className="min-h-screen bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
       <Header />
@@ -97,10 +88,10 @@ export default function AboutPage() {
           <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
             <div className="grid grid-cols-2 gap-px sm:grid-cols-4">
               {[
-                { n: String(films.length), label: "Films" },
-                { n: "12", label: "Years" },
-                { n: "4", label: "Collections" },
-                { n: "24", label: "Streaming" },
+                { n: "22", label: "Films" },
+                { n: "5", label: "Years" },
+                { n: "7h", label: "Archived" },
+                { n: "9", label: "Served" },
               ].map(({ n, label }) => (
                 <div key={label} className="flex flex-col bg-[var(--almanac-parchment)] px-5 py-6">
                   <span className="text-4xl font-bold tabular-nums leading-none">{n}</span>
@@ -110,36 +101,6 @@ export default function AboutPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Selected Press */}
-        <section className="border-t border-[var(--almanac-border)] pt-10">
-          <p className="mb-5 text-[11px] uppercase tracking-[0.24em] text-[var(--almanac-ink-light)]">
-            Selected press
-          </p>
-          <div className="border-2 border-[var(--almanac-ink)]">
-            <header className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--almanac-parchment)]">
-              Press
-            </header>
-            {press.map((item, i) => (
-              <div
-                key={i}
-                className={`grid gap-6 px-4 py-4 text-sm sm:grid-cols-[1fr_100px] ${
-                  i % 2 === 0 ? "bg-[var(--almanac-parchment)]" : "bg-[var(--almanac-parchment-alt)]"
-                }`}
-              >
-                <p className="leading-relaxed text-[var(--almanac-ink-mid)]">
-                  <span className="text-[var(--almanac-border)]">&ldquo;</span>
-                  {item.quote}
-                  <span className="text-[var(--almanac-border)]">&rdquo;</span>
-                </p>
-                <div className="sm:text-right">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em]">{item.source}</p>
-                  <p className="text-[11px] tabular-nums text-[var(--almanac-ink-light)]">{item.year}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </section>
 

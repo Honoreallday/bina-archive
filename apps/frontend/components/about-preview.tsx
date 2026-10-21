@@ -1,10 +1,6 @@
 import Link from "next/link"
-import { getPublishedFilms } from "@/lib/films-data"
 
 export function AboutPreview() {
-  const films = getPublishedFilms()
-  const totalMins = films.reduce((acc, f) => acc + (Number.parseInt(f.duration, 10) || 0), 0)
-
   return (
     <section className="mx-auto max-w-6xl border-t border-[var(--almanac-border)] px-6 py-14 md:px-10">
       <div className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
@@ -34,10 +30,10 @@ export function AboutPreview() {
         <div className="border-2 border-[var(--almanac-ink)] bg-[var(--almanac-ink)]">
           <div className="grid grid-cols-2 gap-px">
             {[
-              { n: String(films.length), label: "Films" },
-              { n: "12", label: "Years" },
-              { n: "4", label: "Collections" },
-              { n: `${Math.round(totalMins / 60)}h`, label: "Archived" },
+              { n: "22", label: "Films" },
+              { n: "5", label: "Years" },
+              { n: "7h", label: "Archived" },
+              { n: "9", label: "Served" },
             ].map(({ n, label }) => (
               <div key={label} className="flex flex-col bg-[var(--almanac-parchment)] px-5 py-5">
                 <span className="text-3xl font-bold tabular-nums leading-none">{n}</span>

@@ -5,7 +5,6 @@ import { useState } from "react"
 
 const nav = [
   { href: "/films", label: "Films" },
-  { href: "/collections", label: "Collections" },
   { href: "/distribution", label: "Distribution" },
   { href: "/submissions", label: "Submissions" },
   { href: "/pricing", label: "Pricing" },
@@ -18,19 +17,6 @@ export function Header() {
 
   return (
     <div className="bg-[var(--almanac-parchment)] font-[family-name:var(--font-almanac-mono)] text-[var(--almanac-ink)] selection:bg-[var(--almanac-blue)] selection:text-[var(--almanac-parchment)]">
-      {/* Thin metadata strip — full bleed, edge to edge */}
-      <div className="border-b border-[var(--almanac-ink)] bg-[var(--almanac-ink)] text-[var(--almanac-parchment)]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-1.5 text-[11px] uppercase tracking-[0.18em] md:px-10">
-          <span>Dream Chambers Public Access — Moving Image Archive</span>
-          <a
-            href="mailto:dreamchambers@proton.me"
-            className="hidden hover:text-[var(--almanac-gold)] sm:inline"
-          >
-            dreamchambers@proton.me
-          </a>
-        </div>
-      </div>
-
       {/* Masthead */}
       <header className="border-b-2 border-[var(--almanac-ink)]">
         <div className="mx-auto max-w-6xl px-6 py-6 md:px-10">

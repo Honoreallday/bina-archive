@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { getPublishedFilms } from "@/lib/films-data"
 
 const heroImages = [
   "/images/hero/chicago-skyline.jpg",
@@ -15,7 +14,6 @@ const heroImages = [
 ]
 
 export function HeroSection() {
-  const films = getPublishedFilms()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
@@ -31,7 +29,7 @@ export function HeroSection() {
   }, [])
 
   return (
-    <section className="relative overflow-hidden border-b-2 border-[var(--almanac-ink)] px-6 py-16 md:px-10">
+    <section className="relative overflow-hidden border-b-2 border-[var(--almanac-ink)] px-6 py-20 md:px-10 md:py-24">
       {/* Cycling background images */}
       {heroImages.map((src, index) => (
         <Image
@@ -71,30 +69,15 @@ export function HeroSection() {
       </div>
 
       <div className="relative mx-auto max-w-6xl">
-        <p className="text-[11px] uppercase tracking-[0.28em] text-[var(--almanac-red)]">Now Streaming</p>
-        <h1 className="mt-4 max-w-3xl text-balance text-3xl font-bold leading-[1.2] tracking-tight md:text-5xl">
-          An archive of Black Minnesotan and Midwestern film,{" "}
-          <span className="font-[family-name:var(--font-almanac-script)] font-normal text-[var(--almanac-blue)]">
-            kept in trust.
-          </span>
+        <h1 className="max-w-3xl text-balance text-3xl font-bold leading-[1.2] tracking-tight md:text-5xl">
+          An archive of Black Minnesotan and Midwestern film.
         </h1>
-        <p className="mt-5 max-w-lg text-sm leading-relaxed text-[var(--almanac-ink-mid)]">
-          {films.length} works catalogued from the early 2000s to the present, alongside historical
-          personal and home video from the 1960s onward. Browse the full catalogue or find your way
-          in by collection.
-        </p>
-        <div className="mt-7 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/films"
             className="inline-block border-2 border-[var(--almanac-ink)] px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--almanac-ink)] hover:text-[var(--almanac-parchment)]"
           >
             Browse the catalogue →
-          </Link>
-          <Link
-            href="/collections"
-            className="inline-block border border-[var(--almanac-border)] px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.2em] hover:border-[var(--almanac-ink)]"
-          >
-            By collection
           </Link>
         </div>
       </div>

@@ -120,6 +120,14 @@ Add a search input to the `/films` page header. Debounce the input (~300ms) and 
 
 ---
 
+### Featured Films Curation (Admin)
+
+Added 2026-10-20, not started. Home's Featured block (`components/featured-films.tsx`) currently shows the 3 most recently uploaded films marked published — recency is a stand-in, not editorial choice. Eventually the admin needs a way to pick which films are featured from the admin CMS.
+
+Implementation sketch (detail in `known_issues.md` → "No `featured` column"): new migration adding `featured BOOLEAN NOT NULL DEFAULT FALSE` to `films`; a Featured toggle on the Admin Edit page (and/or a picker on the admin films list) next to the Draft/Published toggle; add `featured` to `updateFilm`'s allowlist in `src/db/films.js`; support `GET /api/films?featured=true`; switch `FeaturedFilms` to request featured films, falling back to most-recent-3 if none are flagged. Decide whether to cap the number featured (the Home grid is 3 columns).
+
+---
+
 ### Real Aggregate Statistics (Admin Dashboard + About/Home)
 
 Planned 2026-08-18, not yet implemented — full page-by-page audit and design decisions below, confirmed with the user, ready to build whenever this gets picked up.
@@ -127,6 +135,7 @@ Planned 2026-08-18, not yet implemented — full page-by-page audit and design d
 **What's currently fake:**
 - Admin Dashboard (`app/admin/(dashboard)/page.tsx`) — all 4 stat cards (Total Films, Total Views, Watch Time, Collections), the entire Recent Films table, and the entire Recent Activity log are hardcoded arrays, not real queries.
 - About page (`app/about/page.tsx`) and Home's About Preview (`components/about-preview.tsx`) — "Years" (`"12"`) and "Streaming" (`"24"`) are hardcoded literals; "Films" is already computed (from fixture data) and "Collections" (`"4"`) is a stable configuration fact, not really a fake stat — lower priority to touch.
+  - **Update 2026-10-20:** Home's About Preview is now fully hardcoded with client-supplied numbers (Films 22, Years 5, Archived 7h, Served 9) — no longer computed. The About page's stats block got the same values. If this Phase 7 work is built, decide whether those become live queries or stay client-managed.
 
 **Confirmed design decisions:**
 - **Watch Time** → cheap proxy: `SUM(view_count × duration_seconds) / 3600`, i.e. assume every recorded view watches the whole film. Not accurate, but requires no new tracking infrastructure. Real tracking (player reporting watch progress back to the server) was considered and explicitly deferred — bigger feature, not worth it yet.

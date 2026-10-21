@@ -22,6 +22,7 @@ Status key: `[ ]` not started · `[~]` in progress · `[x]` done
 **File:** `app/page.tsx`
 **Status:** `[x]` ported 2026-08-18 — `<Header>`/`<Footer>` restyled first, then Home. `<HeroSection>`, `<FeaturedFilms>`, `<CollectionsPreview>`, `<AboutPreview>` rewritten to almanac styling. Site brand settled as "Dream Chambers Public Access" (not the prototype's "THE ALMANAC" persona/nav labels) — root `<title>` and header/footer updated to match; nav trimmed to the 4 routes that exist today (Films/Collections/About/Contact), Distribution/Submissions/Pricing left out until those pages are ported (step 33). Header changed from `fixed` to static in-flow, so the old `pt-16`/`pt-24` header-offset padding was removed from every public page's `<main>`.
 **Data source update (2026-08-20):** `<FeaturedFilms>` and `<CollectionsPreview>` were switched from `lib/films-data.ts` fixture data to `GET /api/films` (live database) — the fixture approach 404'd once a real row existed in `films`, since Film Detail was already live-API-driven and fixture slugs don't exist in the real DB. `<HeroSection>` and `<AboutPreview>` are still fixture-driven (their stat counters read from `lib/films-data.ts`) — that's unchanged and intentional for now, not an oversight. Full writeup in `known_issues.md` → "Home's Featured Films 404'd once real uploads started."
+**Content trim (2026-10-20):** header metadata strip removed; `<CollectionsPreview>` no longer rendered on Home (Collections taken down); hero lost its "Now Streaming" eyebrow, "kept in trust." accent and descriptive paragraph (and was respaced) — it no longer reads any data; `<AboutPreview>` stats are now hardcoded client values (Films 22 / Years 5 / Archived 7h / Served 9), no longer fixture-derived. `<FeaturedFilms>` unchanged: live-API-driven, 3 most recent published films (admin-chosen featured films planned — `development_roadmap.md` Phase 7). See `pickupleftoff.md` 2026-10-20.
 **Almanac Prototype:** `[x]` built, functionally equivalent — `app/examples/almanac/home/page.tsx`, static fixture data. Now includes the same 6-image auto-cycling background carousel (crossfade every 6s + indicator dots) as the real hero. Featured films / collections preview / about preview are equal or better than the real page (fixture films have real slugs, unlike the MVP's hardcoded fake ones).
 **Functionality:**
 - Composed entirely of section components: `<HeroSection>`, `<FeaturedFilms>`, `<CollectionsPreview>`, `<AboutPreview>`
@@ -76,7 +77,8 @@ Status key: `[ ]` not started · `[~]` in progress · `[x]` done
 ---
 
 ### `/collections` — Collections Index
-**File:** `app/collections/page.tsx`
+**File:** `app/_collections/page.tsx` (was `app/collections/page.tsx`)
+**Taken down 2026-10-20** — moved into the `app/_collections/` private folder (not routed; `/collections` 404s) and removed from header/footer nav, the Home hero, and Home's `<CollectionsPreview>` section. Restore by moving back to `app/collections/` and re-adding those links. See `pickupleftoff.md` 2026-10-20.
 **Status:** `[x]` ported 2026-08-18 — restyled, still fixture-driven via `lib/films-data.ts` (matches the real page's pre-port behavior and the prototype; live-DB tag filtering was noted as a nice-to-have in `development_roadmap.md` step 30, not done here).
 **Almanac Prototype:** `[x]` built, functionally equivalent — `app/examples/almanac/collections/page.tsx` (95 lines). Same 4 collections as the real page, but counts and total-minutes-per-collection are computed live from `lib/films-data.ts` fixtures rather than hardcoded — a straightforward, slightly more dynamic port.
 **Functionality:**
@@ -90,7 +92,8 @@ Status key: `[ ]` not started · `[~]` in progress · `[x]` done
 ---
 
 ### `/collections/[slug]` — Collection Detail
-**File:** `app/collections/[slug]/page.tsx`
+**File:** `app/_collections/[slug]/page.tsx` (was `app/collections/[slug]/page.tsx`)
+**Taken down 2026-10-20** — same as Collections Index above.
 **Status:** `[x]` ported 2026-08-18 — restyled, same fixture-driven data source as before.
 **Almanac Prototype:** `[x]` built, functionally equivalent — `app/examples/almanac/collections/[slug]/page.tsx` (144 lines). Uses the same `lib/films-data.ts` fixture source and filtering logic the real page already uses (the real page is fixture-driven here too, not live-DB — a known Phase-6 gap per `development_roadmap.md`, not something the prototype introduces). Near 1:1 port; prototype adds a running total-minutes stat the real page doesn't show.
 **Functionality:**
@@ -107,6 +110,7 @@ Status key: `[ ]` not started · `[~]` in progress · `[x]` done
 ### `/about` — About the Archive
 **File:** `app/about/page.tsx`
 **Status:** `[x]` ported 2026-08-18 — renamed from the prototype's "Colophon" framing back to plain "About the Archive" per user request (nav label was already "About"; the page content now matches). Dropped the self-referential "Colophon" section (the "an almanac is not a website..." copy + fake "Publication record" box listing things like "Binding: Screen-bound, no backend") — that was commentary about the almanac-as-object concept, not about DCPA, and read as overly precious. Founding/Mission/Values/Stats/Selected Press all kept verbatim (real, client-verified copy).
+**Update 2026-10-20:** Selected Press section removed entirely (it only ever held `"Insert quote here"` placeholders). "Archive at a glance" stats now hardcoded to match Home's About Preview: Films 22 / Years 5 / Archived 7h / Served 9.
 **Almanac Prototype:** `[x]` built, functionally equivalent (superset) — `app/examples/almanac/about/page.tsx` (215 lines, "Colophon"; most recently revised of the set — 187 net lines added in the current uncommitted diff). Same sections and press quotes verbatim; stats block computes film count from fixtures (others still hardcoded like the real page). Adds a bonus "Colophon" publication-record section the real page doesn't have. No blocking gaps.
 **Functionality:**
 - Fully static. No API calls, no interactivity.

@@ -1,12 +1,27 @@
 # Pick Up Left Off
 
-Last updated: 2026-08-20
+Last updated: 2026-10-20
 
 ---
 
 ## Current Direction
 
-Phase 9 (the almanac restyle + Phase 6 gap-closing port, see below) is complete and **live in production** — `main` is pushed, Vercel deploys from it, and the client has started using the real admin upload flow. Focus has shifted from porting to two things: (1) **production stabilization** — fixing bugs only visible under real usage (see `known_issues.md`, which is now the most active doc in this set), and (2) a **client-facing design exploration** — three alternate dark colorways behind a live theme-switcher widget, merged to `main` and awaiting client feedback (see the 2026-08-19–20 session below). Next planned feature work (not started) is the real aggregate-statistics build documented in `development_roadmap.md` Phase 7.
+Phase 9 (the almanac restyle + Phase 6 gap-closing port, see below) is complete and **live in production** — `main` is pushed, Vercel deploys from it, and the client has started using the real admin upload flow. Focus has shifted from porting to two things: (1) **production stabilization** — fixing bugs only visible under real usage (see `known_issues.md`, which is now the most active doc in this set), and (2) a **client-facing design exploration** — three alternate dark colorways behind a live theme-switcher widget, merged to `main` and awaiting client feedback (see the 2026-08-19–20 session below). Next planned feature work (not started) is the real aggregate-statistics build documented in `development_roadmap.md` Phase 7. Most recent work (2026-10-20) was a small client content trim on branch `design/homepage-about-trim`, including taking Collections offline — see below.
+
+---
+
+## Session 2026-10-20 — Content Trim (Header, Home, About, Collections taken down)
+
+Small client-requested design/content trim, done on a new branch `design/homepage-about-trim` cut from local `main` (not from `design/dark-colorway-experiments`, which is the client-demo branch — it carries the `/examples` prototype tree and is missing `main`'s live-API Featured Films fix `642ca3f`, so it doesn't reflect production). Local `main` was 1 docs commit (`0220da5`) ahead of `origin/main` at the time; that commit is included in this branch's history.
+
+- **Header** (`components/header.tsx`) — removed the thin black metadata strip above the masthead ("Dream Chambers Public Access — Moving Image Archive" + `dreamchambers@proton.me`). Contact email is still in the footer and on Contact.
+- **Collections taken down** — route files moved from `app/collections/` to `app/_collections/` (an underscore-prefixed folder is a Next.js App Router *private folder*: kept in the codebase, not routed, so `/collections` and `/collections/[slug]` now 404). To restore: move them back to `app/collections/`. Every link to it was removed so nothing on the site points at a 404: "Collections" from the header + footer nav, the hero's "By collection" button, and the `<CollectionsPreview>` section from Home (`app/page.tsx` no longer renders it; `components/collections-preview.tsx` is left in place, unused, for when Collections comes back). Admin upload/edit still have the collections (tags) multi-select — unchanged, since tags are still stored on films.
+- **Home hero** (`components/hero-section.tsx`) — removed the red "Now Streaming" eyebrow, the blue script "kept in trust." span (headline now ends "…Midwestern film."), and the "N works catalogued from the early 2000s…" paragraph. Respaced: section padding `py-16` → `py-20 md:py-24` so the photo banner keeps its presence with less content, headline has no top margin now that the eyebrow is gone, CTA row `mt-7` → `mt-8`. Dropped the now-unused `getPublishedFilms` import.
+- **Home About Preview stats** (`components/about-preview.tsx`) — now hardcoded client-supplied values: Films 22, Years 5, Archived 7h, Served 9 (replacing Films/Years/Collections/Archived, two of which were computed from fixture data). Styling unchanged.
+- **Home Featured Films** (`components/featured-films.tsx`) — briefly given a fixture-filler fallback this session (the block hides itself when the live DB has no published films, which is why it had vanished locally), then reverted the same day once the user uploaded real films through the admin flow. **Final state: unchanged from `main`** — shows the 3 most recently created films where `published = TRUE` (`GET /api/films` is `ORDER BY created_at DESC`; the component slices the first 3), and hides itself if none exist. Currently that's "CRICE", "VINETTE 4 COLOR" and "Diary Entry 1". No fixture data involved. Admin-controlled featured selection is now a planned item — see `development_roadmap.md` Phase 7 → "Featured Films Curation".
+- **About page** (`app/about/page.tsx`) — removed the Selected Press section and its placeholder `press` array. Its "Archive at a glance" stats (previously Films/Years/Collections/Streaming) now match Home exactly: Films 22, Years 5, Archived 7h, Served 9 — hardcoded, same styling, unused `getPublishedFilms` import dropped.
+
+`tsc --noEmit` clean. No runtime check run here (per the standing note about not starting a second `next dev`).
 
 ---
 
